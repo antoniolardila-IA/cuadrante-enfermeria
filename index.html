@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>index.html</title>
+<title>Cuadrante Guardias · Enfermería</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -725,7 +725,7 @@ body {
 <header class="app-header">
   <div>
     <div class="app-header h1" style="font-size:15px;font-weight:600;letter-spacing:.02em">Cuadrante Guardias · Enfermería</div>
-    <div class="subtitle">Ubrique · Grazalema — Nov 2026 / Oct 2027</div>
+    <div class="subtitle">Grazalema (L-D) · Ubrique (M-D) — Nov 2026 / Oct 2027</div>
   </div>
   <div class="header-actions">
     <button class="btn-header" onclick="exportCSV()">⬇ Exportar CSV</button>
@@ -892,219 +892,165 @@ let statsMonthFilter = 'all';
 let highlightDue = null;
 
 // ─── ALGORITMO GENERADOR ──────────────────────────────────────────
+// Cobertura: Grazalema L-D, Ubrique M-D (lunes solo Grazalema).
+// Reglas duras: sin guardias en días consecutivos; nunca dos puestos el mismo día;
+// quien hace sábado hace el jueves siguiente en el MISMO puesto y ese fin de semana
+// (vie-sáb-dom) queda libre.
+// Reglas blandas (optimizadas con recocido simulado): igualdad de guardias anual y
+// mensual, lun/mar/mié equilibrados y sin repetir el mismo día en un mes, vie/sáb/dom
+// equilibrados, alternancia de puesto, fin de semana libre tras trabajar vie/sáb/dom.
 function generateSchedule() {
-  const s = {};
+  const N = NUM_DUES;
+  const W = { tot:100, mes:25, loc:8, dow:30, dowJue:15, mesFin:6, rep:200, finSem:120, alt:10 };
 
-  // ── Helpers de fecha ──────────────────────────────────────────
-  function isoWeekKey(dateStr) {
-    const d2 = new Date(dateStr + 'T00:00:00');
-    d2.setDate(d2.getDate() + 4 - (d2.getDay() || 7));
-    const y = d2.getFullYear();
-    const jan1 = new Date(y, 0, 1);
-    const wn = Math.ceil((((d2 - jan1) / 86400000) + jan1.getDay() + 1) / 7);
-    return `${y}-W${String(wn).padStart(2,'0')}`;
+  const dates = [], dow = [];
+  { const d = new Date(START); while (d <= END) { dates.push(dateKey(d)); dow.push(d.getDay()); d.setDate(d.getDate()+1); } }
+  const D = dates.length;
+  const month = dates.map(k => (parseInt(k.slice(0,4),10)-2026)*12 + parseInt(k.slice(5,7),10) - 11);
+  const week  = dates.map((_,i) => Math.floor((i + 6) / 7)); // semanas lun-dom (idx 0 = domingo 1-nov)
+  const NW = week[D-1] + 1;
+  const has = (i, loc) => !(loc === 0 && dow[i] === 1); // Ubrique no cubre lunes
+
+  // ── Unidades de asignación (sábado + jueves siguiente van juntos) ──
+  const units = [];
+  for (let i = 0; i < D; i++) for (let loc = 0; loc < 2; loc++) {
+    if (!has(i, loc)) continue;
+    if (dow[i] === 4 && i-5 >= 0 && has(i-5, loc)) continue; // cola de un sáb→jue
+    const u = { days:[i], loc, thu:-1, due:-1 };
+    if (dow[i] === 6 && i+5 < D && has(i+5, loc)) { u.days.push(i+5); u.thu = i+5; }
+    units.push(u);
   }
 
-  // ── Recopilar fechas ──────────────────────────────────────────
-  const dates = [];
-  { const d = new Date(START); while (d <= END) { dates.push(dateKey(d)); d.setDate(d.getDate()+1); } }
-
-  // ── Estado por DUE ────────────────────────────────────────────
-  // locNext: próxima ubicación esperada (para alternar)
-  // Para que la alternancia inicial esté distribuida, DUEs impares
-  // empiezan en Ubrique, pares en Grazalema
-  const ds = {};
-  for (let i = 1; i <= NUM_DUES; i++) {
-    ds[i] = {
-      total: 0,
-      grazalema: 0,
-      viernes: 0, sabado: 0, domingo: 0, jueves: 0,
-      lastDate: null,
-      locNext: (i % 2 === 1) ? 'ubrique' : 'grazalema',
-      weekGuard: new Set(),
-      thuWeek: null,     // semana ISO en que hizo guardia de jueves (ciclo sáb→jue)
-    };
+  // ── Objetivos ideales ──
+  let totSlots = 0, ubrSlots = 0;
+  const monthSlots = new Array(12).fill(0), dowSlots = new Array(7).fill(0);
+  const mdSlots = new Array(12*7).fill(0);
+  for (let i = 0; i < D; i++) for (let loc = 0; loc < 2; loc++) if (has(i, loc)) {
+    totSlots++; if (loc === 0) ubrSlots++;
+    monthSlots[month[i]]++; dowSlots[dow[i]]++; mdSlots[month[i]*7 + dow[i]]++;
   }
+  const totT = totSlots / N, ubrT = ubrSlots / N;
+  const monthT = monthSlots.map(v => v / N), dowT = dowSlots.map(v => v / N), mdT = mdSlots.map(v => v / N);
 
-  // ── Función de puntuación ─────────────────────────────────────
-  // Penalizaciones grandes (>1000) son reglas HARD (no deben romperse).
-  // Penalizaciones pequeñas (<200) son preferencias SOFT (se equilibran).
-  function scoreFor(i, dateStr, loc, dow, wk, alreadyUsedThisDay) {
-    if (alreadyUsedThisDay.has(i)) return Infinity; // mismo DUE dos veces en el mismo día
+  function attempt(seed0) {
+    let seed = seed0;
+    const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
 
-    const st = ds[i];
-    let score = 0;
+    const slotDue = new Int16Array(D*2).fill(-1);
+    const occ = [], thuF = [], list = [];
+    for (let d = 0; d < N; d++) { occ.push(new Int8Array(D)); thuF.push(new Uint8Array(D)); list.push([]); }
 
-    // HARD 1: no guardia dos días consecutivos
-    if (st.lastDate) {
-      const diff = (new Date(dateStr) - new Date(st.lastDate)) / 86400000;
-      if (diff <= 1) score += 50000;
-    }
-
-    // HARD 2: máximo 1 guardia por semana
-    if (st.weekGuard.has(wk)) score += 40000;
-
-    // HARD 3: si hizo guardia el jueves de esta semana (por el ciclo sáb→jue),
-    // no puede trabajar el viernes, sábado ni domingo de esa misma semana.
-    // thuWeek almacena la semana ISO del jueves trabajado por ciclo.
-    if (dow === 5 || dow === 6 || dow === 0) { // Vie, Sáb, Dom
-      if (st.thuWeek !== null && st.thuWeek === wk) score += 35000;
-    }
-
-    // HARD 4: alternar municipio
-    if (st.locNext !== loc) score += 15000;
-
-    // SOFT 1: equilibrar guardias en Grazalema
-    if (loc === 'grazalema') score += st.grazalema * 30;
-
-    // SOFT 2: equilibrar viernes, sábados, domingos
-    if (dow === 5) score += st.viernes * 25;
-    if (dow === 6) score += st.sabado  * 25;
-    if (dow === 0) score += st.domingo * 25;
-    if (dow === 4) score += st.jueves  * 10;
-
-    // SOFT 3: equilibrar total de guardias
-    score += st.total * 15;
-
-    return score;
-  }
-
-  // ── Asignación día a día ──────────────────────────────────────
-  for (const dateStr of dates) {
-    const dt  = new Date(dateStr + 'T00:00:00');
-    const dow = dt.getDay(); // 0=Dom 1=Lun … 6=Sáb
-    const wk  = isoWeekKey(dateStr);
-    const used = new Set();
-
-    // Elegir DUE para Ubrique: el de menor puntuación
-    let bestU = -1, bestScoreU = Infinity;
-    for (let i = 1; i <= NUM_DUES; i++) {
-      const sc = scoreFor(i, dateStr, 'ubrique', dow, wk, used);
-      if (sc < bestScoreU) { bestScoreU = sc; bestU = i; }
-    }
-    used.add(bestU);
-
-    // Elegir DUE para Grazalema (sin poder repetir el de Ubrique)
-    let bestG = -1, bestScoreG = Infinity;
-    for (let i = 1; i <= NUM_DUES; i++) {
-      const sc = scoreFor(i, dateStr, 'grazalema', dow, wk, used);
-      if (sc < bestScoreG) { bestScoreG = sc; bestG = i; }
-    }
-    used.add(bestG);
-
-    s[dateStr] = { ubrique: dueLabel(bestU), grazalema: dueLabel(bestG) };
-
-    // ── Actualizar estado ────────────────────────────────────
-    function updateDue(idx, loc) {
-      const st = ds[idx];
-      st.total++;
-      st.lastDate = dateStr;
-      st.weekGuard.add(wk);
-      if (loc === 'grazalema') st.grazalema++;
-      if (dow === 5) st.viernes++;
-      if (dow === 6) st.sabado++;
-      if (dow === 0) st.domingo++;
-      if (dow === 4) st.jueves++;
-      st.locNext = (loc === 'ubrique') ? 'grazalema' : 'ubrique';
-    }
-    updateDue(bestU, 'ubrique');
-    updateDue(bestG, 'grazalema');
-  }
-
-  // ── Helper: semana ISO del jueves de la semana que contiene dateStr ──
-  function wkThu_of(dateStr) {
-    const dt = new Date(dateStr + 'T00:00:00');
-    const dow = dt.getDay();
-    const daysToThu = (4 - ((dow + 6) % 7) + 7) % 7;
-    const thu = new Date(dt);
-    thu.setDate(dt.getDate() + daysToThu);
-    return isoWeekKey(dateKey(thu));
-  }
-
-  // ── Post-proceso: sábado → jueves siguiente ───────────────────
-  // PASADA 1: Para cada sábado, forzar al DUE de ese municipio
-  // en el jueves siguiente del MISMO municipio, y marcar thuWeek.
-  // PASADA 2: Con thuWeek ya marcados, limpiar vie/sáb/dom de esa
-  // semana si el DUE con thuWeek aparece asignado en esos días.
-  for (const dateStr of dates) {
-    const dt = new Date(dateStr + 'T00:00:00');
-    if (dt.getDay() !== 6) continue; // solo sábados
-
-    const satEntry = s[dateStr];
-    const nextThu  = new Date(dt);
-    nextThu.setDate(dt.getDate() + 5); // sáb + 5 días = jueves siguiente
-    if (nextThu > END) continue;
-    const thuStr  = dateKey(nextThu);
-    if (!s[thuStr]) continue;
-    const wkThu = isoWeekKey(thuStr);
-
-    for (const loc of ['ubrique', 'grazalema']) {
-      const satDue  = satEntry[loc];
-      const thuEntry = s[thuStr];
-      const dueIdx  = parseInt(satDue.replace('DUE ',''));
-
-      // Forzar el jueves en el mismo municipio
-      if (thuEntry[loc] !== satDue) {
-        thuEntry[loc] = satDue;
+    function place(u, d) {
+      for (const x of u.days) {
+        slotDue[x*2 + u.loc] = d; occ[d][x] = u.loc + 1;
+        if (x === u.thu) thuF[d][x] = 1;
+        const L = list[d]; let k = L.length; L.push(x);
+        while (k > 0 && L[k-1] > x) { L[k] = L[k-1]; k--; } L[k] = x;
       }
-      // Marcar thuWeek para bloquear su fin de semana
-      ds[dueIdx].thuWeek = wkThu;
+      u.due = d;
     }
-  }
+    function unplace(u) {
+      const d = u.due;
+      for (const x of u.days) {
+        slotDue[x*2 + u.loc] = -1; occ[d][x] = 0; thuF[d][x] = 0;
+        const L = list[d]; L.splice(L.indexOf(x), 1);
+      }
+      u.due = -1;
+    }
+    function feasible(d, u) {
+      const o = occ[d], t = thuF[d];
+      for (const x of u.days) {
+        if (o[x]) return false;
+        if (x > 0 && o[x-1]) return false;
+        if (x < D-1 && o[x+1]) return false;
+        if (dow[x] === 6 && x >= 2 && t[x-2]) return false;
+        if (dow[x] === 0 && x >= 3 && t[x-3]) return false;
+        if (x === u.thu) for (let k = 2; k <= 3; k++) if (x+k < D && o[x+k]) return false;
+      }
+      return true;
+    }
 
-  // PASADA 2: Recorrer vie/sáb/dom y eliminar asignaciones de DUEs
-  // que tengan thuWeek == esa semana (el jueves ya los obliga a descansar).
-  // Si un DUE bloqueado aparece en vie/sáb/dom, sustituirlo por el DUE
-  // con menos guardias que NO esté bloqueado ese día.
-  for (const dateStr of dates) {
-    const dt  = new Date(dateStr + 'T00:00:00');
-    const dow = dt.getDay(); // 0=Dom 5=Vie 6=Sáb
-    if (dow !== 5 && dow !== 6 && dow !== 0) continue; // solo Vie, Sáb, Dom
+    const cm = new Int16Array(12), cd = new Int16Array(7), cmd = new Int16Array(84), wk = new Uint8Array(NW);
+    function cost(d) {
+      const L = list[d], n = L.length, o = occ[d], t = thuF[d];
+      cm.fill(0); cd.fill(0); cmd.fill(0); wk.fill(0);
+      let cu = 0, alt = 0, prevLoc = -1;
+      for (let i = 0; i < n; i++) {
+        const x = L[i], loc = o[x] - 1, m = month[x], w = dow[x];
+        cm[m]++; cd[w]++; cmd[m*7 + w]++;
+        if (loc === 0) cu++;
+        if (w === 5 || w === 6 || w === 0) wk[week[x]] = 1;
+        if (i > 0 && loc === prevLoc && !t[x]) alt++;
+        prevLoc = loc;
+      }
+      let c = W.tot * (n - totT) ** 2 + W.loc * (cu - ubrT) ** 2 + W.alt * alt;
+      for (let m = 0; m < 12; m++) {
+        c += W.mes * (cm[m] - monthT[m]) ** 2;
+        for (const w of [5, 6, 0]) c += W.mesFin * (cmd[m*7 + w] - mdT[m*7 + w]) ** 2;
+        for (const w of [1, 2, 3]) if (cmd[m*7 + w] > 1) c += W.rep * (cmd[m*7 + w] - 1);
+      }
+      for (let w = 0; w < 7; w++) c += (w === 4 ? W.dowJue : W.dow) * (cd[w] - dowT[w]) ** 2;
+      for (let k = 0; k < NW - 1; k++) if (wk[k] && wk[k+1]) c += W.finSem;
+      return c;
+    }
 
-    const wk = isoWeekKey(dateStr);
-    const entry = s[dateStr];
+    // ── Construcción inicial voraz ──
+    const order = units.slice().sort((a, b) => a.days[0] - b.days[0] || a.loc - b.loc);
+    for (const u of order) {
+      let best = -1, bestV = Infinity;
+      for (let d = 0; d < N; d++) {
+        if (!feasible(d, u)) continue;
+        const before = cost(d);
+        place(u, d); const after = cost(d); unplace(u);
+        const v = after - before + rnd() * 2;
+        if (v < bestV) { bestV = v; best = d; }
+      }
+      if (best < 0) return null;
+      place(u, best);
+    }
 
-    for (const loc of ['ubrique', 'grazalema']) {
-      const assigned = entry[loc];
-      const idx = parseInt(assigned.replace('DUE ',''));
-      if (ds[idx].thuWeek !== wkThu_of(dateStr)) continue; // no bloqueado
-
-      // Este DUE está bloqueado en este día → buscar sustituto
-      // Sustituto: menor total de guardias, no bloqueado, no ya usado hoy
-      const otherLoc = loc === 'ubrique' ? 'grazalema' : 'ubrique';
-      const usedToday = new Set([
-        parseInt(entry[otherLoc].replace('DUE ','')),
-        idx
-      ]);
-
-      let bestSub = -1, bestTotal = Infinity;
-      for (let i = 1; i <= NUM_DUES; i++) {
-        if (usedToday.has(i)) continue;
-        const st = ds[i];
-        // No bloqueado en esta semana
-        if (st.thuWeek === wk) continue;
-        // No trabajó el día anterior
-        if (st.lastDate) {
-          const diff = (new Date(dateStr) - new Date(st.lastDate)) / 86400000;
-          if (diff <= 1) continue;
+    // ── Mejora por recocido simulado (reasignaciones e intercambios) ──
+    const cc = []; for (let d = 0; d < N; d++) cc.push(cost(d));
+    const ITER = 260000, T0 = 40, T1 = 0.4, NU = units.length;
+    for (let it = 0; it < ITER; it++) {
+      const T = T0 * Math.pow(T1 / T0, it / ITER);
+      const A = units[(rnd() * NU) | 0], a = A.due;
+      if (rnd() < 0.35) {                       // reasignar A a otro DUE
+        const b = (rnd() * N) | 0; if (b === a) continue;
+        unplace(A);
+        if (!feasible(b, A)) { place(A, a); continue; }
+        place(A, b);
+        const na = cost(a), nb = cost(b), delta = na + nb - cc[a] - cc[b];
+        if (delta <= 0 || rnd() < Math.exp(-delta / T)) { cc[a] = na; cc[b] = nb; }
+        else { unplace(A); place(A, a); }
+      } else {                                   // intercambiar A y B
+        const B = units[(rnd() * NU) | 0], b = B.due;
+        if (a === b || A === B) continue;
+        unplace(A); unplace(B);
+        if (feasible(b, A)) {
+          place(A, b);
+          if (feasible(a, B)) {
+            place(B, a);
+            const na = cost(a), nb = cost(b), delta = na + nb - cc[a] - cc[b];
+            if (delta <= 0 || rnd() < Math.exp(-delta / T)) { cc[a] = na; cc[b] = nb; continue; }
+            unplace(B);
+          }
+          unplace(A);
         }
-        if (st.total < bestTotal) { bestTotal = st.total; bestSub = i; }
-      }
-
-      if (bestSub !== -1) {
-        entry[loc] = dueLabel(bestSub);
-        // Actualizar stats del sustituto
-        ds[bestSub].total++;
-        ds[bestSub].lastDate = dateStr;
-        if (loc === 'grazalema') ds[bestSub].grazalema++;
-        if (dow === 5) ds[bestSub].viernes++;
-        if (dow === 6) ds[bestSub].sabado++;
-        if (dow === 0) ds[bestSub].domingo++;
+        place(A, a); place(B, b);
       }
     }
+
+    const s = {};
+    for (let i = 0; i < D; i++) s[dates[i]] = {
+      ubrique:   slotDue[i*2]   >= 0 ? dueLabel(slotDue[i*2]   + 1) : null,
+      grazalema: slotDue[i*2+1] >= 0 ? dueLabel(slotDue[i*2+1] + 1) : null
+    };
+    return s;
   }
 
-  return s;
+  for (let k = 0; k < 10; k++) { const s = attempt(20261101 + k * 7919); if (s) return s; }
+  return {};
 }
 
 // ─── UTILIDADES DE FECHA ──────────────────────────────────────────
@@ -1130,7 +1076,7 @@ function getSlot(dateStr, loc) {
   const change = changes.find(c => c.date === dateStr && c.loc === loc);
   if (change) return { due: change.to, changed: true, from: change.from, reason: change.reason };
   const base = schedule[dateStr];
-  if (!base) return null;
+  if (!base || !base[loc]) return null;
   return { due: base[loc], changed: false };
 }
 
@@ -1141,7 +1087,7 @@ function computeStats(monthFilter) {
     stats[dueLabel(i)] = {
       total: 0, horas: 0,
       ubrique: 0, grazalema: 0,
-      viernes: 0, sabado: 0, domingo: 0, jueves: 0,
+      lunes: 0, martes: 0, miercoles: 0, viernes: 0, sabado: 0, domingo: 0, jueves: 0,
       extra: 0,
       quitadas: { baja:0, asunto:0, vacaciones:0, cambio:0 }
     };
@@ -1169,6 +1115,9 @@ function computeStats(monthFilter) {
       st.total++;
       st.horas += h;
       if (loc === 'ubrique') st.ubrique++; else st.grazalema++;
+      if (dow === 1) st.lunes++;
+      if (dow === 2) st.martes++;
+      if (dow === 3) st.miercoles++;
       if (dow === 5) st.viernes++;
       if (dow === 6) st.sabado++;
       if (dow === 0) st.domingo++;
@@ -1181,11 +1130,6 @@ function computeStats(monthFilter) {
         const origSt = stats[slot.from];
         if (origSt && slot.reason) {
           origSt.quitadas[slot.reason] = (origSt.quitadas[slot.reason]||0) + 1;
-          origSt.total--;    // doesn't count as worked
-          origSt.horas -= h;
-          if (dow === 5) origSt.viernes--;
-          if (dow === 6) origSt.sabado--;
-          if (dow === 0) origSt.domingo--;
         }
       }
     }
@@ -1347,7 +1291,7 @@ function renderStatsTable() {
 
   const stats = computeStats(statsMonthFilter);
 
-  let totals = { total:0, horas:0, ubrique:0, grazalema:0, viernes:0, sabado:0, domingo:0, jueves:0, extra:0 };
+  let totals = { total:0, horas:0, ubrique:0, grazalema:0, lunes:0, martes:0, miercoles:0, viernes:0, sabado:0, domingo:0, jueves:0, extra:0 };
 
   let rows = '';
   for (let i = 1; i <= NUM_DUES; i++) {
@@ -1357,6 +1301,7 @@ function renderStatsTable() {
     totals.horas     += st.horas;
     totals.ubrique   += st.ubrique;
     totals.grazalema += st.grazalema;
+    totals.lunes += st.lunes; totals.martes += st.martes; totals.miercoles += st.miercoles;
     totals.viernes   += st.viernes;
     totals.sabado    += st.sabado;
     totals.domingo   += st.domingo;
@@ -1370,10 +1315,11 @@ function renderStatsTable() {
       <td>${st.horas}h</td>
       <td style="color:var(--ubrique);font-weight:600">${st.ubrique}</td>
       <td style="color:var(--grazalema);font-weight:600">${st.grazalema}</td>
+      <td>${st.lunes}</td><td>${st.martes}</td><td>${st.miercoles}</td>
+      <td>${st.jueves}</td>
       <td>${st.viernes}</td>
       <td>${st.sabado}</td>
       <td>${st.domingo}</td>
-      <td>${st.jueves}</td>
       <td>${st.extra || '—'}</td>
       <td style="font-size:10px;color:var(--text3)">${qStr}</td>
     </tr>`;
@@ -1385,7 +1331,7 @@ function renderStatsTable() {
         <th>DUE</th><th>Total</th><th>Horas</th>
         <th style="color:var(--ubrique)">Ubrique</th>
         <th style="color:var(--grazalema)">Grazalema</th>
-        <th>Vie</th><th>Sáb</th><th>Dom</th><th>Jue</th>
+        <th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>
         <th>Extra</th><th>Ausencias</th>
       </tr></thead>
       <tbody>${rows}</tbody>
@@ -1393,7 +1339,7 @@ function renderStatsTable() {
         <td>TOTAL</td>
         <td>${totals.total}</td><td>${totals.horas}h</td>
         <td>${totals.ubrique}</td><td>${totals.grazalema}</td>
-        <td>${totals.viernes}</td><td>${totals.sabado}</td><td>${totals.domingo}</td><td>${totals.jueves}</td>
+        <td>${totals.lunes}</td><td>${totals.martes}</td><td>${totals.miercoles}</td><td>${totals.jueves}</td><td>${totals.viernes}</td><td>${totals.sabado}</td><td>${totals.domingo}</td>
         <td>${totals.extra}</td><td></td>
       </tr></tfoot>
     </table>`;
@@ -1552,26 +1498,27 @@ function deleteChange(id) {
 
 // ─── PERSISTENCIA ─────────────────────────────────────────────────
 function saveData() {
-  localStorage.setItem('guardias_schedule_v2', JSON.stringify(schedule));
-  localStorage.setItem('guardias_changes_v2', JSON.stringify(changes));
+  localStorage.setItem('guardias_schedule_v3', JSON.stringify(schedule));
+  localStorage.setItem('guardias_changes_v3', JSON.stringify(changes));
   localStorage.setItem('guardias_profiles_v2', JSON.stringify(profiles));
 }
 
 function loadData() {
   try {
-    const s = localStorage.getItem('guardias_schedule_v2');
-    const c = localStorage.getItem('guardias_changes_v2');
+    const s = localStorage.getItem('guardias_schedule_v3');
+    const c = localStorage.getItem('guardias_changes_v3');
     const p = localStorage.getItem('guardias_profiles_v2');
     if (s) schedule = JSON.parse(s);
     if (c) changes  = JSON.parse(c);
     if (p) profiles = JSON.parse(p);
+    else { const p2 = localStorage.getItem('guardias_profiles_v2'); if (p2) profiles = JSON.parse(p2); }
   } catch(e) {}
 }
 
 function resetAll() {
   if (!confirm('¿Reiniciar cuadrante? Se perderán todos los cambios registrados. Los nombres de los profesionales se conservan.')) return;
-  localStorage.removeItem('guardias_schedule_v2');
-  localStorage.removeItem('guardias_changes_v2');
+  localStorage.removeItem('guardias_schedule_v3');
+  localStorage.removeItem('guardias_changes_v3');
   changes = [];
   schedule = generateSchedule();
   saveData();
