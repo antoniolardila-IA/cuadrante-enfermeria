@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>index.html</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F0F4F8;
+  --surface: #FFFFFF;
+  --surface2: #E8EEF4;
+  --border: #C8D6E2;
+  --text: #1A2A38;
+  --text2: #4A6278;
+  --text3: #7A94A8;
+  --accent: #1B5FA8;
+  --accent-light: #E3EDF8;
+  --ubrique: #1B5FA8;
+  --ubrique-light: #D6E6F6;
+  --grazalema: #1A6B4A;
+  --grazalema-light: #D4EDE3;
+  --danger: #B02020;
+  --danger-light: #FDEAEA;
+  --warn: #8A5A00;
+  --warn-light: #FEF3D8;
+  --success: #1A6B4A;
+  --success-light: #D4EDE3;
+  --weekend: #6B2A8A;
+  --weekend-light: #EDE0F4;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --shadow: 0 1px 4px rgba(0,0,0,.08);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.12);
+  --font: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.app-header {
+  background: var(--accent);
+  color: white;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.app-header h1 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+.app-header .subtitle {
+  font-size: 11px;
+  opacity: .7;
+  font-weight: 300;
+  margin-top: 1px;
+}
+.header-actions { display: flex; gap: 8px; align-items: center; }
+.btn-header {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.25);
+  color: white;
+  padding: 5px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font);
+  font-weight: 500;
+  transition: background .15s;
+}
+.btn-header:hover { background: rgba(255,255,255,.25); }
+
+/* ── Stats bar ── */
+.stats-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  gap: 32px;
+  overflow-x: auto;
+}
+.stat-item { text-align: center; white-space: nowrap; }
+.stat-val {
+  font-size: 22px;
+  font-weight: 600;
+  font-family: var(--mono);
+  color: var(--accent);
+  line-height: 1;
+}
+.stat-lbl {
+  font-size: 10px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-top: 2px;
+}
+
+/* ── Layout ── */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 0;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: calc(100vh - 56px);
+}
+.content-area { padding: 20px 20px 20px 24px; border-right: 1px solid var(--border); }
+.side-panel { padding: 20px 20px 20px 16px; background: var(--surface); }
+
+/* ── Nav tabs ── */
+.nav-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  background: var(--surface2);
+  padding: 4px;
+  border-radius: var(--radius-lg);
+  width: fit-content;
+}
+.nav-tab {
+  padding: 6px 14px;
+  border-radius: calc(var(--radius-lg) - 2px);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  transition: all .15s;
+}
+.nav-tab.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+/* ── Month navigator ── */
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.month-nav h2 {
+  font-size: 16px;
+  font-weight: 600;
+  min-width: 180px;
+  text-align: center;
+}
+.btn-nav {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 30px; height: 30px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.btn-nav:hover { background: var(--surface2); }
+
+/* ── Calendar grid ── */
+.calendar-grid {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.cal-header-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 2px solid var(--border);
+}
+.cal-dow {
+  text-align: center;
+  padding: 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--text2);
+  text-transform: uppercase;
+}
+.cal-dow.weekend { color: var(--weekend); }
+.cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+.cal-day {
+  border-right: 1px solid var(--surface2);
+  border-bottom: 1px solid var(--surface2);
+  min-height: 90px;
+  padding: 4px;
+  cursor: pointer;
+  transition: background .1s;
+  position: relative;
+}
+.cal-day:hover { background: var(--accent-light); }
+.cal-day.empty { background: var(--bg); cursor: default; }
+.cal-day.today { background: #EBF3FF; }
+.cal-day.weekend-col { background: #FAFAFC; }
+.cal-day-num {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 4px;
+  font-family: var(--mono);
+}
+.cal-day.today .cal-day-num {
+  background: var(--accent);
+  color: white;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+}
+.guard-chip {
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  margin-bottom: 2px;
+  line-height: 1.3;
+  font-family: var(--mono);
+  font-weight: 500;
+  cursor: pointer;
+}
+.guard-chip.ubrique {
+  background: var(--ubrique-light);
+  color: var(--ubrique);
+  border-left: 3px solid var(--ubrique);
+}
+.guard-chip.grazalema {
+  background: var(--grazalema-light);
+  color: var(--grazalema);
+  border-left: 3px solid var(--grazalema);
+}
+.guard-chip.changed {
+  opacity: .7;
+  text-decoration: line-through;
+}
+.guard-chip.has-change {
+  position: relative;
+}
+.change-badge {
+  position: absolute;
+  top: -1px; right: -1px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+/* ── Side panel ── */
+.side-section { margin-bottom: 20px; }
+.side-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Day detail ── */
+.day-detail-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.day-detail-header {
+  background: var(--accent);
+  color: white;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.day-slot {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--surface2);
+}
+.day-slot:last-child { border-bottom: none; }
+.slot-location {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.slot-location.ubrique { color: var(--ubrique); }
+.slot-location.grazalema { color: var(--grazalema); }
+.slot-due {
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--mono);
+}
+.slot-hours {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+.slot-change-info {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--warn);
+  background: var(--warn-light);
+  padding: 3px 6px;
+  border-radius: 3px;
+}
+
+.btn-change {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  transition: background .15s;
+}
+.btn-change:hover { background: var(--accent); color: white; }
+
+/* ── DUE stats mini ── */
+.due-stats-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.due-mini-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 36px 40px;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background .1s;
+}
+.due-mini-row:hover { background: var(--surface2); }
+.due-mini-row.selected { background: var(--accent-light); }
+.due-mini-name {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--mono);
+  color: var(--accent);
+}
+.due-mini-bar-wrap {
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.due-mini-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width .3s;
+}
+.due-mini-count {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text2);
+  text-align: right;
+}
+.due-mini-hours {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text3);
+  text-align: right;
+}
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+.modal-overlay.hidden { display: none; }
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 460px;
+  overflow: hidden;
+}
+.modal-header {
+  background: var(--accent);
+  color: white;
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-close {
+  background: none; border: none; color: white;
+  font-size: 20px; cursor: pointer; line-height: 1;
+}
+.modal-body { padding: 18px; }
+.modal-footer {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.form-group { margin-bottom: 14px; }
+.form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text2);
+  margin-bottom: 5px;
+}
+.form-select, .form-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s;
+}
+.form-select:focus, .form-input:focus { border-color: var(--accent); }
+
+.reason-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.reason-btn {
+  padding: 8px 10px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--text2);
+  transition: all .15s;
+}
+.reason-btn:hover { border-color: var(--accent); color: var(--accent); }
+.reason-btn.selected { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+.reason-btn.baja.selected { border-color: var(--danger); background: var(--danger-light); color: var(--danger); }
+.reason-btn.asunto.selected { border-color: var(--warn); background: var(--warn-light); color: var(--warn); }
+.reason-btn.vacaciones.selected { border-color: var(--success); background: var(--success-light); color: var(--success); }
+
+.btn { padding: 8px 18px; border-radius: var(--radius); font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: opacity .15s; }
+.btn:hover { opacity: .85; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-secondary { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+.btn-danger { background: var(--danger); color: white; }
+
+/* ── Estadísticas view ── */
+.stats-table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.stats-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.stats-table th {
+  background: var(--surface2);
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.stats-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--surface2);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.stats-table tr:last-child td { border-bottom: none; }
+.stats-table tr:hover td { background: var(--accent-light); }
+.stats-table .due-col { font-weight: 600; color: var(--accent); }
+.stats-table .total-row td { font-weight: 600; background: var(--surface2); border-top: 2px solid var(--border); }
+
+/* month filter */
+.month-filter {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.month-pill {
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text2);
+  transition: all .15s;
+}
+.month-pill.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+/* ── Cambios view ── */
+.changes-list { display: flex; flex-direction: column; gap: 8px; }
+.change-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: start;
+}
+.change-item .c-date { font-size: 11px; font-family: var(--mono); color: var(--text3); }
+.change-item .c-info { font-size: 13px; font-weight: 500; margin-top: 2px; }
+.change-item .c-reason-badge {
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.badge-baja { background: var(--danger-light); color: var(--danger); }
+.badge-asunto { background: var(--warn-light); color: var(--warn); }
+.badge-vacaciones { background: var(--success-light); color: var(--success); }
+.badge-cambio { background: var(--accent-light); color: var(--accent); }
+.btn-del-change {
+  background: none; border: none; color: var(--text3);
+  cursor: pointer; font-size: 14px; padding: 2px 4px;
+  border-radius: 3px; transition: color .1s;
+}
+.btn-del-change:hover { color: var(--danger); }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* legend */
+.legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+.legend-dot.ubrique { background: var(--ubrique); }
+.legend-dot.grazalema { background: var(--grazalema); }
+
+/* toast */
+.toast {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  background: var(--text);
+  color: white;
+  padding: 10px 18px;
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  box-shadow: var(--shadow-lg);
+  z-index: 300;
+  opacity: 0;
+  transition: opacity .3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* conflict chip */
+.conflict-chip {
+  font-size: 9px;
+  padding: 1px 4px;
+  background: var(--danger-light);
+  color: var(--danger);
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+/* ── Perfiles ── */
+.profiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+.profile-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow);
+  transition: border-color .15s;
+}
+.profile-card:hover { border-color: var(--accent); }
+.profile-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--mono);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid var(--accent);
+}
+.profile-info { flex: 1; min-width: 0; }
+.profile-code {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text3);
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.profile-name-display {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.profile-name-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+  display: none;
+}
+.profile-name-input:focus { border-color: var(--accent); }
+.profile-card.editing .profile-name-display { display: none; }
+.profile-card.editing .profile-name-input { display: block; }
+.profile-edit-btn {
+  background: none; border: none;
+  color: var(--text3); cursor: pointer;
+  font-size: 14px; padding: 4px;
+  border-radius: var(--radius);
+  transition: color .1s, background .1s;
+  flex-shrink: 0;
+}
+.profile-edit-btn:hover { color: var(--accent); background: var(--accent-light); }
+.profile-card.editing .profile-edit-btn { color: var(--success); }
+.profiles-actions {
+  display: flex; gap: 8px; margin-bottom: 16px; align-items: center;
+}
+.profiles-note {
+  font-size: 12px; color: var(--text3);
+  background: var(--surface2); border-radius: var(--radius);
+  padding: 8px 12px; margin-bottom: 14px;
+}
+.btn-print {
+  margin-left: auto;
+  padding: 6px 14px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-print:hover { background: var(--accent); color: white; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div>
+    <div class="app-header h1" style="font-size:15px;font-weight:600;letter-spacing:.02em">Cuadrante Guardias · Enfermería</div>
+    <div class="subtitle">Ubrique · Grazalema — Nov 2026 / Oct 2027</div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-header" onclick="exportCSV()">⬇ Exportar CSV</button>
+    <button class="btn-header" onclick="resetAll()" style="background:rgba(176,32,32,.25);border-color:rgba(255,100,100,.3)">↺ Reiniciar</button>
+  </div>
+</header>
+
+<div class="stats-bar" id="statsBar">
+  <!-- filled by JS -->
+</div>
+
+<div class="main-layout">
+  <div class="content-area">
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchView('calendario')">📅 Cuadrante</button>
+      <button class="nav-tab" onclick="switchView('estadisticas')">📊 Estadísticas</button>
+      <button class="nav-tab" onclick="switchView('cambios')">🔄 Cambios</button>
+      <button class="nav-tab" onclick="switchView('perfiles')">👤 Perfiles</button>
+    </div>
+
+    <!-- CALENDARIO -->
+    <div id="view-calendario">
+      <div class="month-nav">
+        <button class="btn-nav" onclick="prevMonth()">‹</button>
+        <h2 id="monthTitle"></h2>
+        <button class="btn-nav" onclick="nextMonth()">›</button>
+        <button class="btn-print" onclick="printMonth()">🖨 Imprimir mes</button>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot ubrique"></div> Ubrique</div>
+        <div class="legend-item"><div class="legend-dot grazalema"></div> Grazalema</div>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
+
+    <!-- ESTADÍSTICAS -->
+    <div id="view-estadisticas" style="display:none">
+      <div class="month-filter" id="monthFilter"></div>
+      <div class="stats-table" id="statsTableWrap"></div>
+    </div>
+
+    <!-- CAMBIOS -->
+    <div id="view-cambios" style="display:none">
+      <div class="changes-list" id="changesList"></div>
+      <div id="noChanges" style="color:var(--text3);font-size:13px;padding:20px 0;text-align:center">Sin cambios registrados</div>
+    </div>
+
+    <!-- PERFILES -->
+    <div id="view-perfiles" style="display:none">
+      <div class="profiles-actions">
+        <button class="btn btn-primary" onclick="editAllProfiles()">✏ Editar todos</button>
+        <button class="btn btn-secondary" onclick="saveAllProfiles()">✔ Guardar todos</button>
+        <button class="btn btn-secondary" onclick="clearAllNames()" style="margin-left:auto">Limpiar nombres</button>
+      </div>
+      <div class="profiles-note">
+        Introduce el nombre de cada profesional. En el cuadrante, estadísticas y cambios se usará el nombre en lugar del código DUE. El código sigue siendo el identificador interno.
+      </div>
+      <div class="profiles-grid" id="profilesGrid"></div>
+    </div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="side-panel">
+    <div class="side-section">
+      <div class="side-title">Día seleccionado</div>
+      <div id="dayDetail">
+        <div style="color:var(--text3);font-size:13px;padding:10px 0">Selecciona un día en el cuadrante</div>
+      </div>
+    </div>
+    <div class="side-section">
+      <div class="side-title">Guardias por DUE (mes actual)</div>
+      <div class="due-stats-mini" id="dueMiniStats"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CAMBIO -->
+<div class="modal-overlay hidden" id="changeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="modalTitle">Registrar cambio</span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Fecha</label>
+        <div id="modalDateInfo" style="font-size:14px;font-weight:600;font-family:var(--mono)"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Centro</label>
+        <div id="modalLocationInfo" style="font-size:14px;font-weight:600"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">DUE actual asignado</label>
+        <div id="modalCurrentDue" style="font-size:16px;font-weight:700;font-family:var(--mono);color:var(--accent)"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Motivo del cambio</label>
+        <div class="reason-grid">
+          <button class="reason-btn baja" onclick="selectReason('baja')" id="rb-baja">🏥 Baja médica</button>
+          <button class="reason-btn asunto" onclick="selectReason('asunto')" id="rb-asunto">📋 Asunto propio</button>
+          <button class="reason-btn vacaciones" onclick="selectReason('vacaciones')" id="rb-vacaciones">🌴 Vacaciones</button>
+          <button class="reason-btn" onclick="selectReason('cambio')" id="rb-cambio">🔄 Cambio entre DUEs</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Asignar a</label>
+        <select class="form-select" id="modalNewDue"></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveChange()">Guardar cambio</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONSTANTES ───────────────────────────────────────────────────
+const NUM_DUES = 21;
+const START = new Date(2026, 10, 1); // 1 nov 2026
+const END   = new Date(2027, 9, 31); // 31 oct 2027
+
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+               'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS_SEMANA = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+
+function dueLabel(n) { return `DUE ${n}`; }
+
+// Returns display name for a DUE code (e.g. "DUE 3" → "Ana García" if set)
+function dueName(code) {
+  if (!code) return code;
+  const num = parseInt(code.replace('DUE ',''));
+  if (profiles[num] && profiles[num].trim()) return profiles[num].trim();
+  return code;
+}
+// Returns short display: first name or code
+function dueShort(code) {
+  const n = dueName(code);
+  if (n === code) return code.replace('DUE ','D');
+  // First word only (first name) for chip
+  return n.split(' ')[0];
+}
+// Returns initials for avatar
+function dueInitials(code) {
+  const n = dueName(code);
+  if (n === code) return code.replace('DUE ','');
+  const parts = n.trim().split(' ').filter(Boolean);
+  if (parts.length >= 2) return parts[0][0] + parts[1][0];
+  return parts[0].slice(0,2);
+}
+
+// ─── ESTADO ───────────────────────────────────────────────────────
+let schedule = {};   // { "2026-11-01": { ubrique: "DUE 3", grazalema: "DUE 11" } }
+let changes  = [];   // [{ id, date, loc, from, to, reason }]
+let profiles = {};   // { 1: "Ana García", 2: "Carlos López", ... }
+let currentMonth = { y: 2026, m: 10 }; // 0-indexed month
+let selectedDay  = null;
+let modalCtx     = null;
+let selectedReason = null;
+let statsMonthFilter = 'all';
+let highlightDue = null;
+
+// ─── ALGORITMO GENERADOR ──────────────────────────────────────────
+function generateSchedule() {
+  const s = {};
+
+  // ── Helpers de fecha ──────────────────────────────────────────
+  function isoWeekKey(dateStr) {
+    const d2 = new Date(dateStr + 'T00:00:00');
+    d2.setDate(d2.getDate() + 4 - (d2.getDay() || 7));
+    const y = d2.getFullYear();
+    const jan1 = new Date(y, 0, 1);
+    const wn = Math.ceil((((d2 - jan1) / 86400000) + jan1.getDay() + 1) / 7);
+    return `${y}-W${String(wn).padStart(2,'0')}`;
+  }
+
+  // ── Recopilar fechas ──────────────────────────────────────────
+  const dates = [];
+  { const d = new Date(START); while (d <= END) { dates.push(dateKey(d)); d.setDate(d.getDate()+1); } }
+
+  // ── Estado por DUE ────────────────────────────────────────────
+  // locNext: próxima ubicación esperada (para alternar)
+  // Para que la alternancia inicial esté distribuida, DUEs impares
+  // empiezan en Ubrique, pares en Grazalema
+  const ds = {};
+  for (let i = 1; i <= NUM_DUES; i++) {
+    ds[i] = {
+      total: 0,
+      grazalema: 0,
+      viernes: 0, sabado: 0, domingo: 0, jueves: 0,
+      lastDate: null,
+      locNext: (i % 2 === 1) ? 'ubrique' : 'grazalema',
+      weekGuard: new Set(),
+      thuWeek: null,     // semana ISO en que hizo guardia de jueves (ciclo sáb→jue)
+    };
+  }
+
+  // ── Función de puntuación ─────────────────────────────────────
+  // Penalizaciones grandes (>1000) son reglas HARD (no deben romperse).
+  // Penalizaciones pequeñas (<200) son preferencias SOFT (se equilibran).
+  function scoreFor(i, dateStr, loc, dow, wk, alreadyUsedThisDay) {
+    if (alreadyUsedThisDay.has(i)) return Infinity; // mismo DUE dos veces en el mismo día
+
+    const st = ds[i];
+    let score = 0;
+
+    // HARD 1: no guardia dos días consecutivos
+    if (st.lastDate) {
+      const diff = (new Date(dateStr) - new Date(st.lastDate)) / 86400000;
+      if (diff <= 1) score += 50000;
+    }
+
+    // HARD 2: máximo 1 guardia por semana
+    if (st.weekGuard.has(wk)) score += 40000;
+
+    // HARD 3: si hizo guardia el jueves de esta semana (por el ciclo sáb→jue),
+    // no puede trabajar el viernes, sábado ni domingo de esa misma semana.
+    // thuWeek almacena la semana ISO del jueves trabajado por ciclo.
+    if (dow === 5 || dow === 6 || dow === 0) { // Vie, Sáb, Dom
+      if (st.thuWeek !== null && st.thuWeek === wk) score += 35000;
+    }
+
+    // HARD 4: alternar municipio
+    if (st.locNext !== loc) score += 15000;
+
+    // SOFT 1: equilibrar guardias en Grazalema
+    if (loc === 'grazalema') score += st.grazalema * 30;
+
+    // SOFT 2: equilibrar viernes, sábados, domingos
+    if (dow === 5) score += st.viernes * 25;
+    if (dow === 6) score += st.sabado  * 25;
+    if (dow === 0) score += st.domingo * 25;
+    if (dow === 4) score += st.jueves  * 10;
+
+    // SOFT 3: equilibrar total de guardias
+    score += st.total * 15;
+
+    return score;
+  }
+
+  // ── Asignación día a día ──────────────────────────────────────
+  for (const dateStr of dates) {
+    const dt  = new Date(dateStr + 'T00:00:00');
+    const dow = dt.getDay(); // 0=Dom 1=Lun … 6=Sáb
+    const wk  = isoWeekKey(dateStr);
+    const used = new Set();
+
+    // Elegir DUE para Ubrique: el de menor puntuación
+    let bestU = -1, bestScoreU = Infinity;
+    for (let i = 1; i <= NUM_DUES; i++) {
+      const sc = scoreFor(i, dateStr, 'ubrique', dow, wk, used);
+      if (sc < bestScoreU) { bestScoreU = sc; bestU = i; }
+    }
+    used.add(bestU);
+
+    // Elegir DUE para Grazalema (sin poder repetir el de Ubrique)
+    let bestG = -1, bestScoreG = Infinity;
+    for (let i = 1; i <= NUM_DUES; i++) {
+      const sc = scoreFor(i, dateStr, 'grazalema', dow, wk, used);
+      if (sc < bestScoreG) { bestScoreG = sc; bestG = i; }
+    }
+    used.add(bestG);
+
+    s[dateStr] = { ubrique: dueLabel(bestU), grazalema: dueLabel(bestG) };
+
+    // ── Actualizar estado ────────────────────────────────────
+    function updateDue(idx, loc) {
+      const st = ds[idx];
+      st.total++;
+      st.lastDate = dateStr;
+      st.weekGuard.add(wk);
+      if (loc === 'grazalema') st.grazalema++;
+      if (dow === 5) st.viernes++;
+      if (dow === 6) st.sabado++;
+      if (dow === 0) st.domingo++;
+      if (dow === 4) st.jueves++;
+      st.locNext = (loc === 'ubrique') ? 'grazalema' : 'ubrique';
+    }
+    updateDue(bestU, 'ubrique');
+    updateDue(bestG, 'grazalema');
+  }
+
+  // ── Helper: semana ISO del jueves de la semana que contiene dateStr ──
+  function wkThu_of(dateStr) {
+    const dt = new Date(dateStr + 'T00:00:00');
+    const dow = dt.getDay();
+    const daysToThu = (4 - ((dow + 6) % 7) + 7) % 7;
+    const thu = new Date(dt);
+    thu.setDate(dt.getDate() + daysToThu);
+    return isoWeekKey(dateKey(thu));
+  }
+
+  // ── Post-proceso: sábado → jueves siguiente ───────────────────
+  // PASADA 1: Para cada sábado, forzar al DUE de ese municipio
+  // en el jueves siguiente del MISMO municipio, y marcar thuWeek.
+  // PASADA 2: Con thuWeek ya marcados, limpiar vie/sáb/dom de esa
+  // semana si el DUE con thuWeek aparece asignado en esos días.
+  for (const dateStr of dates) {
+    const dt = new Date(dateStr + 'T00:00:00');
+    if (dt.getDay() !== 6) continue; // solo sábados
+
+    const satEntry = s[dateStr];
+    const nextThu  = new Date(dt);
+    nextThu.setDate(dt.getDate() + 5); // sáb + 5 días = jueves siguiente
+    if (nextThu > END) continue;
+    const thuStr  = dateKey(nextThu);
+    if (!s[thuStr]) continue;
+    const wkThu = isoWeekKey(thuStr);
+
+    for (const loc of ['ubrique', 'grazalema']) {
+      const satDue  = satEntry[loc];
+      const thuEntry = s[thuStr];
+      const dueIdx  = parseInt(satDue.replace('DUE ',''));
+
+      // Forzar el jueves en el mismo municipio
+      if (thuEntry[loc] !== satDue) {
+        thuEntry[loc] = satDue;
+      }
+      // Marcar thuWeek para bloquear su fin de semana
+      ds[dueIdx].thuWeek = wkThu;
+    }
+  }
+
+  // PASADA 2: Recorrer vie/sáb/dom y eliminar asignaciones de DUEs
+  // que tengan thuWeek == esa semana (el jueves ya los obliga a descansar).
+  // Si un DUE bloqueado aparece en vie/sáb/dom, sustituirlo por el DUE
+  // con menos guardias que NO esté bloqueado ese día.
+  for (const dateStr of dates) {
+    const dt  = new Date(dateStr + 'T00:00:00');
+    const dow = dt.getDay(); // 0=Dom 5=Vie 6=Sáb
+    if (dow !== 5 && dow !== 6 && dow !== 0) continue; // solo Vie, Sáb, Dom
+
+    const wk = isoWeekKey(dateStr);
+    const entry = s[dateStr];
+
+    for (const loc of ['ubrique', 'grazalema']) {
+      const assigned = entry[loc];
+      const idx = parseInt(assigned.replace('DUE ',''));
+      if (ds[idx].thuWeek !== wkThu_of(dateStr)) continue; // no bloqueado
+
+      // Este DUE está bloqueado en este día → buscar sustituto
+      // Sustituto: menor total de guardias, no bloqueado, no ya usado hoy
+      const otherLoc = loc === 'ubrique' ? 'grazalema' : 'ubrique';
+      const usedToday = new Set([
+        parseInt(entry[otherLoc].replace('DUE ','')),
+        idx
+      ]);
+
+      let bestSub = -1, bestTotal = Infinity;
+      for (let i = 1; i <= NUM_DUES; i++) {
+        if (usedToday.has(i)) continue;
+        const st = ds[i];
+        // No bloqueado en esta semana
+        if (st.thuWeek === wk) continue;
+        // No trabajó el día anterior
+        if (st.lastDate) {
+          const diff = (new Date(dateStr) - new Date(st.lastDate)) / 86400000;
+          if (diff <= 1) continue;
+        }
+        if (st.total < bestTotal) { bestTotal = st.total; bestSub = i; }
+      }
+
+      if (bestSub !== -1) {
+        entry[loc] = dueLabel(bestSub);
+        // Actualizar stats del sustituto
+        ds[bestSub].total++;
+        ds[bestSub].lastDate = dateStr;
+        if (loc === 'grazalema') ds[bestSub].grazalema++;
+        if (dow === 5) ds[bestSub].viernes++;
+        if (dow === 6) ds[bestSub].sabado++;
+        if (dow === 0) ds[bestSub].domingo++;
+      }
+    }
+  }
+
+  return s;
+}
+
+// ─── UTILIDADES DE FECHA ──────────────────────────────────────────
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function parseKey(k) { return new Date(k + 'T00:00:00'); }
+
+function horasGuardia(dateStr) {
+  const d = parseKey(dateStr);
+  const dow = d.getDay();
+  return (dow === 0 || dow === 6) ? 24 : 17;
+}
+
+function dowName(dateStr) {
+  const d = parseKey(dateStr);
+  return DIAS_SEMANA[(d.getDay() + 6) % 7];
+}
+
+// ─── DATOS CON CAMBIOS APLICADOS ─────────────────────────────────
+function getSlot(dateStr, loc) {
+  // Apply changes
+  const change = changes.find(c => c.date === dateStr && c.loc === loc);
+  if (change) return { due: change.to, changed: true, from: change.from, reason: change.reason };
+  const base = schedule[dateStr];
+  if (!base) return null;
+  return { due: base[loc], changed: false };
+}
+
+// ─── ESTADÍSTICAS ─────────────────────────────────────────────────
+function computeStats(monthFilter) {
+  const stats = {};
+  for (let i = 1; i <= NUM_DUES; i++) {
+    stats[dueLabel(i)] = {
+      total: 0, horas: 0,
+      ubrique: 0, grazalema: 0,
+      viernes: 0, sabado: 0, domingo: 0, jueves: 0,
+      extra: 0,
+      quitadas: { baja:0, asunto:0, vacaciones:0, cambio:0 }
+    };
+  }
+
+  const dates = Object.keys(schedule).sort();
+  for (const dateStr of dates) {
+    // Filter by month
+    if (monthFilter !== 'all') {
+      const d = parseKey(dateStr);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (key !== monthFilter) continue;
+    }
+
+    const d = parseKey(dateStr);
+    const dow = d.getDay();
+    const h = horasGuardia(dateStr);
+
+    for (const loc of ['ubrique','grazalema']) {
+      const slot = getSlot(dateStr, loc);
+      if (!slot) continue;
+
+      const st = stats[slot.due];
+      if (!st) continue;
+      st.total++;
+      st.horas += h;
+      if (loc === 'ubrique') st.ubrique++; else st.grazalema++;
+      if (dow === 5) st.viernes++;
+      if (dow === 6) st.sabado++;
+      if (dow === 0) st.domingo++;
+      if (dow === 4) st.jueves++;
+
+      // If it was a change, the new DUE gets +extra
+      if (slot.changed) {
+        st.extra++;
+        // The original DUE gets the reason counted
+        const origSt = stats[slot.from];
+        if (origSt && slot.reason) {
+          origSt.quitadas[slot.reason] = (origSt.quitadas[slot.reason]||0) + 1;
+          origSt.total--;    // doesn't count as worked
+          origSt.horas -= h;
+          if (dow === 5) origSt.viernes--;
+          if (dow === 6) origSt.sabado--;
+          if (dow === 0) origSt.domingo--;
+        }
+      }
+    }
+  }
+  return stats;
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────
+function renderStatsBar() {
+  const stats = computeStats('all');
+  const totals = Object.values(stats);
+  const guardiasArr = totals.map(s => s.total);
+  const max = Math.max(...guardiasArr);
+  const min = Math.min(...guardiasArr);
+  const avg = (guardiasArr.reduce((a,b)=>a+b,0)/NUM_DUES).toFixed(1);
+  const totalCambios = changes.length;
+
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-item"><div class="stat-val">${NUM_DUES}</div><div class="stat-lbl">Profesionales</div></div>
+    <div class="stat-item"><div class="stat-val">${avg}</div><div class="stat-lbl">Guardias/DUE (media anual)</div></div>
+    <div class="stat-item"><div class="stat-val">${max}</div><div class="stat-lbl">Guardias máx (1 DUE)</div></div>
+    <div class="stat-item"><div class="stat-val">${min}</div><div class="stat-lbl">Guardias mín (1 DUE)</div></div>
+    <div class="stat-item"><div class="stat-val">${totalCambios}</div><div class="stat-lbl">Cambios registrados</div></div>
+  `;
+}
+
+function renderCalendar() {
+  const { y, m } = currentMonth;
+  document.getElementById('monthTitle').textContent =
+    `${MESES[m]} ${y}`;
+
+  const firstDay = new Date(y, m, 1);
+  const lastDay  = new Date(y, m+1, 0);
+  let startDow = (firstDay.getDay() + 6) % 7; // Mon=0
+
+  let html = `<div class="cal-header-row">`;
+  DIAS_SEMANA.forEach((d,i) => {
+    html += `<div class="cal-dow${i>=5?' weekend':''}">${d}</div>`;
+  });
+  html += `</div><div class="cal-days">`;
+
+  // Empty cells
+  for (let e = 0; e < startDow; e++) {
+    html += `<div class="cal-day empty"></div>`;
+  }
+
+  const today = dateKey(new Date());
+
+  for (let day = 1; day <= lastDay.getDate(); day++) {
+    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dt = parseKey(dateStr);
+    const dow = dt.getDay(); // 0=Sun
+    const isWknd = dow === 0 || dow === 6;
+    const isToday = dateStr === today;
+    const isSel   = dateStr === selectedDay;
+    const inRange = parseKey(dateStr) >= START && parseKey(dateStr) <= END;
+
+    let cls = 'cal-day';
+    if (isWknd) cls += ' weekend-col';
+    if (isToday) cls += ' today';
+    if (isSel)   cls += ' selected' ;
+
+    let chipsHtml = '';
+    if (inRange) {
+      for (const loc of ['ubrique','grazalema']) {
+        const slot = getSlot(dateStr, loc);
+        if (!slot) continue;
+        const isHL = highlightDue && slot.due === highlightDue;
+        let chipCls = `guard-chip ${loc}`;
+        if (slot.changed) chipCls += ' has-change';
+        const style = isHL ? 'outline:2px solid #f0a000;' : '';
+        chipsHtml += `<div class="${chipCls}" style="${style}" onclick="clickChip(event,'${dateStr}','${loc}')" title="${dueName(slot.due)} · ${loc==='ubrique'?'Ubrique':'Grazalema'}">
+          ${dueShort(slot.due)} ${loc==='ubrique'?'·U':'·G'}
+          ${slot.changed ? `<span title="${slot.reason}">⚠</span>` : ''}
+        </div>`;
+      }
+    }
+
+    html += `<div class="${cls}" onclick="selectDay('${dateStr}')">
+      <div class="cal-day-num">${day}</div>
+      ${chipsHtml}
+    </div>`;
+  }
+
+  html += `</div>`;
+  document.getElementById('calendarGrid').innerHTML = html;
+}
+
+function renderDayDetail() {
+  const el = document.getElementById('dayDetail');
+  if (!selectedDay) {
+    el.innerHTML = `<div style="color:var(--text3);font-size:13px;padding:10px 0">Selecciona un día en el cuadrante</div>`;
+    return;
+  }
+  const dt = parseKey(selectedDay);
+  const isInRange = dt >= START && dt <= END;
+  const horas = horasGuardia(selectedDay);
+  const dow = dowName(selectedDay);
+  const horario = (dt.getDay()===0||dt.getDay()===6) ? '08:00 → 08:00 (+1d)' : '15:00 → 08:00 (+1d)';
+
+  let html = `<div class="day-detail-card">
+    <div class="day-detail-header">${dow} ${selectedDay} · ${horas}h · ${horario}</div>`;
+
+  if (!isInRange) {
+    html += `<div style="padding:12px 14px;color:var(--text3);font-size:12px">Fuera del periodo planificado</div>`;
+  } else {
+    for (const loc of ['ubrique','grazalema']) {
+      const slot = getSlot(selectedDay, loc);
+      if (!slot) continue;
+      const locLabel = loc === 'ubrique' ? 'Ubrique' : 'Grazalema';
+      html += `<div class="day-slot">
+        <div class="slot-location ${loc}">${locLabel}</div>
+        <div class="slot-due">${dueName(slot.due)}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${slot.due}</div>
+        <div class="slot-hours">${horas} h · ${horario}</div>
+        ${slot.changed ? `<div class="slot-change-info">⚠ Cambio (${slot.reason}): ${dueName(slot.from)} → ${dueName(slot.due)}</div>` : ''}
+        <button class="btn-change" onclick="openChangeModal('${selectedDay}','${loc}')">✏ Registrar cambio</button>
+      </div>`;
+    }
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+function renderDueMiniStats() {
+  const { y, m } = currentMonth;
+  const monthKey = `${y}-${m}`;
+  const stats = computeStats(monthKey);
+
+  const maxG = Math.max(...Object.values(stats).map(s => s.total)) || 1;
+
+  let html = '';
+  for (let i = 1; i <= NUM_DUES; i++) {
+    const lbl = dueLabel(i);
+    const st = stats[lbl];
+    const pct = Math.round((st.total / maxG) * 100);
+    const isHL = highlightDue === lbl;
+    html += `<div class="due-mini-row${isHL?' selected':''}" onclick="toggleHighlight('${lbl}')">
+      <span class="due-mini-name" title="${dueName(lbl)}">${dueShort(lbl)}</span>
+      <div class="due-mini-bar-wrap"><div class="due-mini-bar" style="width:${pct}%"></div></div>
+      <span class="due-mini-count">${st.total}g</span>
+      <span class="due-mini-hours">${st.horas}h</span>
+    </div>`;
+  }
+  document.getElementById('dueMiniStats').innerHTML = html;
+}
+
+function renderStatsTable() {
+  // Month filter pills
+  const { y: sy, m: sm } = { y:2026, m:10 };
+  let pillsHtml = `<button class="month-pill${statsMonthFilter==='all'?' active':''}" onclick="setStatsMonth('all')">Todo el año</button>`;
+  for (let off = 0; off < 12; off++) {
+    const mm = (sm + off) % 12;
+    const yy = sm + off >= 12 ? 2027 : 2026;
+    const key = `${yy}-${mm}`;
+    pillsHtml += `<button class="month-pill${statsMonthFilter===key?' active':''}" onclick="setStatsMonth('${key}')">${MESES[mm].slice(0,3)} ${yy}</button>`;
+  }
+  document.getElementById('monthFilter').innerHTML = pillsHtml;
+
+  const stats = computeStats(statsMonthFilter);
+
+  let totals = { total:0, horas:0, ubrique:0, grazalema:0, viernes:0, sabado:0, domingo:0, jueves:0, extra:0 };
+
+  let rows = '';
+  for (let i = 1; i <= NUM_DUES; i++) {
+    const lbl = dueLabel(i);
+    const st  = stats[lbl];
+    totals.total     += st.total;
+    totals.horas     += st.horas;
+    totals.ubrique   += st.ubrique;
+    totals.grazalema += st.grazalema;
+    totals.viernes   += st.viernes;
+    totals.sabado    += st.sabado;
+    totals.domingo   += st.domingo;
+    totals.jueves    += st.jueves;
+    totals.extra     += st.extra;
+
+    const qStr = Object.entries(st.quitadas).filter(([,v])=>v>0).map(([k,v])=>`${k}:${v}`).join(' ') || '—';
+    rows += `<tr>
+      <td class="due-col" title="${lbl}">${dueName(lbl)}</td>
+      <td>${st.total}</td>
+      <td>${st.horas}h</td>
+      <td style="color:var(--ubrique);font-weight:600">${st.ubrique}</td>
+      <td style="color:var(--grazalema);font-weight:600">${st.grazalema}</td>
+      <td>${st.viernes}</td>
+      <td>${st.sabado}</td>
+      <td>${st.domingo}</td>
+      <td>${st.jueves}</td>
+      <td>${st.extra || '—'}</td>
+      <td style="font-size:10px;color:var(--text3)">${qStr}</td>
+    </tr>`;
+  }
+
+  document.getElementById('statsTableWrap').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>DUE</th><th>Total</th><th>Horas</th>
+        <th style="color:var(--ubrique)">Ubrique</th>
+        <th style="color:var(--grazalema)">Grazalema</th>
+        <th>Vie</th><th>Sáb</th><th>Dom</th><th>Jue</th>
+        <th>Extra</th><th>Ausencias</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr class="total-row">
+        <td>TOTAL</td>
+        <td>${totals.total}</td><td>${totals.horas}h</td>
+        <td>${totals.ubrique}</td><td>${totals.grazalema}</td>
+        <td>${totals.viernes}</td><td>${totals.sabado}</td><td>${totals.domingo}</td><td>${totals.jueves}</td>
+        <td>${totals.extra}</td><td></td>
+      </tr></tfoot>
+    </table>`;
+}
+
+function renderChanges() {
+  const el = document.getElementById('changesList');
+  const noEl = document.getElementById('noChanges');
+  if (changes.length === 0) {
+    el.innerHTML = '';
+    noEl.style.display = 'block';
+    return;
+  }
+  noEl.style.display = 'none';
+  const sorted = [...changes].sort((a,b) => b.date.localeCompare(a.date));
+  el.innerHTML = sorted.map(c => {
+    const loc = c.loc === 'ubrique' ? 'Ubrique' : 'Grazalema';
+    const badgeCls = `c-reason-badge badge-${c.reason}`;
+    const reasonLabel = {baja:'Baja médica',asunto:'Asunto propio',vacaciones:'Vacaciones',cambio:'Cambio voluntario'}[c.reason]||c.reason;
+    return `<div class="change-item">
+      <div>
+        <div class="c-date">${c.date} · ${loc} · ${dowName(c.date)}</div>
+        <div class="c-info">${dueName(c.from)} → ${dueName(c.to)}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${c.from} → ${c.to}</div>
+        <span class="${badgeCls}">${reasonLabel}</span>
+      </div>
+      <button class="btn-del-change" onclick="deleteChange('${c.id}')" title="Eliminar cambio">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function renderAll() {
+  renderStatsBar();
+  renderCalendar();
+  renderDayDetail();
+  renderDueMiniStats();
+}
+
+// ─── INTERACCIÓN ──────────────────────────────────────────────────
+function switchView(v) {
+  ['calendario','estadisticas','cambios','perfiles'].forEach(id => {
+    document.getElementById(`view-${id}`).style.display = id===v ? '' : 'none';
+  });
+  document.querySelectorAll('.nav-tab').forEach((t,i) => {
+    t.classList.toggle('active', ['calendario','estadisticas','cambios','perfiles'][i]===v);
+  });
+  if (v==='estadisticas') renderStatsTable();
+  if (v==='cambios') renderChanges();
+  if (v==='perfiles') renderProfiles();
+}
+
+function prevMonth() {
+  let { y, m } = currentMonth;
+  m--; if (m<0) { m=11; y--; }
+  currentMonth = {y,m};
+  renderAll();
+}
+function nextMonth() {
+  let { y, m } = currentMonth;
+  m++; if (m>11) { m=0; y++; }
+  currentMonth = {y,m};
+  renderAll();
+}
+
+function selectDay(dateStr) {
+  selectedDay = dateStr;
+  renderDayDetail();
+  renderCalendar();
+}
+
+function clickChip(e, dateStr, loc) {
+  e.stopPropagation();
+  selectDay(dateStr);
+}
+
+function toggleHighlight(lbl) {
+  highlightDue = highlightDue===lbl ? null : lbl;
+  renderAll();
+}
+
+function setStatsMonth(key) {
+  statsMonthFilter = key;
+  renderStatsTable();
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────
+function openChangeModal(dateStr, loc) {
+  const slot = getSlot(dateStr, loc);
+  if (!slot) return;
+  modalCtx = { dateStr, loc, currentDue: slot.due };
+  selectedReason = null;
+
+  document.getElementById('modalDateInfo').textContent = `${dateStr} (${dowName(dateStr)})`;
+  document.getElementById('modalLocationInfo').innerHTML = `<span style="color:var(--${loc})">${loc==='ubrique'?'Ubrique':'Grazalema'}</span>`;
+  document.getElementById('modalCurrentDue').textContent = `${dueName(slot.due)} (${slot.due})`;
+
+  // Build DUE select (exclude current)
+  const sel = document.getElementById('modalNewDue');
+  sel.innerHTML = '';
+  for (let i = 1; i <= NUM_DUES; i++) {
+    const lbl = dueLabel(i);
+    if (lbl === slot.due) continue;
+    const opt = document.createElement('option');
+    opt.value = lbl;
+    opt.textContent = dueName(lbl) !== lbl ? `${dueName(lbl)} (${lbl})` : lbl;
+    sel.appendChild(opt);
+  }
+
+  // Reset reason buttons
+  ['baja','asunto','vacaciones','cambio'].forEach(r => {
+    document.getElementById(`rb-${r}`).classList.remove('selected');
+  });
+
+  document.getElementById('changeModal').classList.remove('hidden');
+}
+
+function selectReason(r) {
+  selectedReason = r;
+  ['baja','asunto','vacaciones','cambio'].forEach(id => {
+    document.getElementById(`rb-${id}`).classList.toggle('selected', id===r);
+  });
+}
+
+function closeModal() {
+  document.getElementById('changeModal').classList.add('hidden');
+  modalCtx = null;
+  selectedReason = null;
+}
+
+function saveChange() {
+  if (!selectedReason) { showToast('Selecciona el motivo del cambio'); return; }
+  const newDue = document.getElementById('modalNewDue').value;
+  if (!newDue) { showToast('Selecciona el DUE sustituto'); return; }
+
+  const { dateStr, loc, currentDue } = modalCtx;
+
+  // Remove existing change for same slot
+  changes = changes.filter(c => !(c.date===dateStr && c.loc===loc));
+
+  const id = `${dateStr}-${loc}-${Date.now()}`;
+  changes.push({ id, date: dateStr, loc, from: currentDue, to: newDue, reason: selectedReason });
+
+  saveData();
+  closeModal();
+  renderAll();
+  showToast(`Cambio registrado: ${currentDue} → ${newDue}`);
+}
+
+function deleteChange(id) {
+  changes = changes.filter(c => c.id !== id);
+  saveData();
+  renderAll();
+  renderChanges();
+  showToast('Cambio eliminado');
+}
+
+// ─── PERSISTENCIA ─────────────────────────────────────────────────
+function saveData() {
+  localStorage.setItem('guardias_schedule_v2', JSON.stringify(schedule));
+  localStorage.setItem('guardias_changes_v2', JSON.stringify(changes));
+  localStorage.setItem('guardias_profiles_v2', JSON.stringify(profiles));
+}
+
+function loadData() {
+  try {
+    const s = localStorage.getItem('guardias_schedule_v2');
+    const c = localStorage.getItem('guardias_changes_v2');
+    const p = localStorage.getItem('guardias_profiles_v2');
+    if (s) schedule = JSON.parse(s);
+    if (c) changes  = JSON.parse(c);
+    if (p) profiles = JSON.parse(p);
+  } catch(e) {}
+}
+
+function resetAll() {
+  if (!confirm('¿Reiniciar cuadrante? Se perderán todos los cambios registrados. Los nombres de los profesionales se conservan.')) return;
+  localStorage.removeItem('guardias_schedule_v2');
+  localStorage.removeItem('guardias_changes_v2');
+  changes = [];
+  schedule = generateSchedule();
+  saveData();
+  renderAll();
+  showToast('Cuadrante reiniciado');
+}
+
+// ─── EXPORT CSV ───────────────────────────────────────────────────
+function exportCSV() {
+  const rows = [['Fecha','DiaSemana','Municipio','DUE','Horas','Cambiado','Motivo','DUE_Original']];
+  const dates = Object.keys(schedule).sort();
+  for (const dateStr of dates) {
+    const h = horasGuardia(dateStr);
+    const dow = dowName(dateStr);
+    for (const loc of ['ubrique','grazalema']) {
+      const slot = getSlot(dateStr, loc);
+      if (!slot) continue;
+      rows.push([
+        dateStr, dow, loc==='ubrique'?'Ubrique':'Grazalema',
+        slot.due, h,
+        slot.changed ? 'SÍ' : 'NO',
+        slot.changed ? slot.reason : '',
+        slot.changed ? slot.from : ''
+      ]);
+    }
+  }
+  const csv = '\uFEFF' + rows.map(r => r.join(';')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'cuadrante_guardias.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exportado');
+}
+
+// ─── PERFILES ─────────────────────────────────────────────────────
+function renderProfiles() {
+  let html = '';
+  for (let i = 1; i <= NUM_DUES; i++) {
+    const lbl = dueLabel(i);
+    const name = profiles[i] || '';
+    const initials = dueInitials(lbl);
+    html += `<div class="profile-card" id="pc-${i}">
+      <div class="profile-avatar" id="pav-${i}">${initials.toUpperCase()}</div>
+      <div class="profile-info">
+        <div class="profile-code">${lbl}</div>
+        <div class="profile-name-display" id="pnd-${i}">${name || '<span style="color:var(--text3);font-weight:400;font-size:12px">Sin nombre asignado</span>'}</div>
+        <input class="profile-name-input" id="pni-${i}" type="text" value="${name}"
+          placeholder="Nombre y apellidos…"
+          onkeydown="if(event.key==='Enter')saveProfile(${i})"
+          oninput="previewProfile(${i})">
+      </div>
+      <button class="profile-edit-btn" id="peb-${i}" onclick="toggleProfileEdit(${i})" title="Editar nombre">✏</button>
+    </div>`;
+  }
+  document.getElementById('profilesGrid').innerHTML = html;
+}
+
+function toggleProfileEdit(i) {
+  const card  = document.getElementById(`pc-${i}`);
+  const input = document.getElementById(`pni-${i}`);
+  const btn   = document.getElementById(`peb-${i}`);
+  if (card.classList.contains('editing')) {
+    saveProfile(i);
+  } else {
+    card.classList.add('editing');
+    input.focus();
+    input.select();
+    btn.textContent = '✔';
+    btn.title = 'Guardar';
+  }
+}
+
+function saveProfile(i) {
+  const input = document.getElementById(`pni-${i}`);
+  const card  = document.getElementById(`pc-${i}`);
+  const btn   = document.getElementById(`peb-${i}`);
+  const val   = input.value.trim();
+  profiles[i] = val;
+  saveData();
+  card.classList.remove('editing');
+  btn.textContent = '✏';
+  btn.title = 'Editar nombre';
+  // Update display
+  const disp = document.getElementById(`pnd-${i}`);
+  disp.innerHTML = val || '<span style="color:var(--text3);font-weight:400;font-size:12px">Sin nombre asignado</span>';
+  // Update avatar initials
+  document.getElementById(`pav-${i}`).textContent = dueInitials(dueLabel(i)).toUpperCase();
+  // Refresh main views to show new names
+  renderAll();
+  showToast(val ? `Guardado: ${val}` : `Nombre eliminado para ${dueLabel(i)}`);
+}
+
+function previewProfile(i) {
+  // Live-update avatar initials while typing
+  const input = document.getElementById(`pni-${i}`);
+  const val   = input.value.trim();
+  const parts = val.split(' ').filter(Boolean);
+  let init = val ? (parts.length >= 2 ? parts[0][0]+parts[1][0] : parts[0].slice(0,2)) : String(i);
+  document.getElementById(`pav-${i}`).textContent = init.toUpperCase();
+}
+
+function editAllProfiles() {
+  for (let i = 1; i <= NUM_DUES; i++) {
+    const card = document.getElementById(`pc-${i}`);
+    if (!card.classList.contains('editing')) toggleProfileEdit(i);
+  }
+}
+
+function saveAllProfiles() {
+  for (let i = 1; i <= NUM_DUES; i++) {
+    const card = document.getElementById(`pc-${i}`);
+    if (card && card.classList.contains('editing')) saveProfile(i);
+  }
+  renderAll();
+  showToast('Todos los perfiles guardados');
+}
+
+function clearAllNames() {
+  if (!confirm('¿Eliminar todos los nombres? Los DUEs volverán a mostrarse como DUE 1, DUE 2…')) return;
+  profiles = {};
+  saveData();
+  renderProfiles();
+  renderAll();
+  showToast('Nombres eliminados');
+}
+
+// ─── IMPRESIÓN A4 ─────────────────────────────────────────────────
+function printMonth() {
+  const { y, m } = currentMonth;
+  const monthName = `${MESES[m]} ${y}`;
+  const firstDay  = new Date(y, m, 1);
+  const lastDay   = new Date(y, m + 1, 0);
+  const startDow  = (firstDay.getDay() + 6) % 7; // Lun=0
+
+  const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+
+  // Construir filas del calendario
+  let calRows = '';
+  let dayCount = 1;
+  // Calcular número de filas necesarias
+  const totalCells = startDow + lastDay.getDate();
+  const numRows = Math.ceil(totalCells / 7);
+
+  for (let row = 0; row < numRows; row++) {
+    calRows += '<tr>';
+    for (let col = 0; col < 7; col++) {
+      const cellIndex = row * 7 + col;
+      if (cellIndex < startDow || dayCount > lastDay.getDate()) {
+        calRows += '<td class="empty"></td>';
+      } else {
+        const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(dayCount).padStart(2,'0')}`;
+        const dt = new Date(dateStr + 'T00:00:00');
+        const dow = dt.getDay(); // 0=Dom
+        const isWknd = dow === 0 || dow === 6;
+        const inRange = dt >= START && dt <= END;
+        const horas = horasGuardia(dateStr);
+        const horario = (dow === 0 || dow === 6) ? '08:00→08:00' : '15:00→08:00';
+
+        let slotU = '—', slotG = '—', changeU = '', changeG = '';
+        if (inRange) {
+          const su = getSlot(dateStr, 'ubrique');
+          const sg = getSlot(dateStr, 'grazalema');
+          if (su) {
+            slotU = dueName(su.due);
+            if (su.changed) changeU = `<span class="changed-mark">⚠ ${dueName(su.from)}</span>`;
+          }
+          if (sg) {
+            slotG = dueName(sg.due);
+            if (sg.changed) changeG = `<span class="changed-mark">⚠ ${dueName(sg.from)}</span>`;
+          }
+        }
+
+        calRows += `<td class="${isWknd ? 'weekend' : ''}${!inRange ? ' out-range' : ''}">
+          <div class="day-num">${dayCount}</div>
+          <div class="hours-lbl">${horas}h · ${horario}</div>
+          <div class="slot ubrique-slot"><span class="loc-dot u-dot"></span>${slotU}${changeU}</div>
+          <div class="slot grazalema-slot"><span class="loc-dot g-dot"></span>${slotG}${changeG}</div>
+        </td>`;
+        dayCount++;
+      }
+    }
+    calRows += '</tr>';
+  }
+
+  // Tabla resumen de guardias del mes
+  const monthKey = `${y}-${m}`;
+  const stats = computeStats(monthKey);
+  let summaryRows = '';
+  for (let i = 1; i <= NUM_DUES; i++) {
+    const lbl = dueLabel(i);
+    const st  = stats[lbl];
+    if (st.total === 0) continue;
+    summaryRows += `<tr>
+      <td>${dueName(lbl)}</td>
+      <td>${st.total}</td>
+      <td>${st.horas}h</td>
+      <td>${st.ubrique}</td>
+      <td>${st.grazalema}</td>
+      <td>${st.viernes}</td>
+      <td>${st.sabado}</td>
+      <td>${st.domingo}</td>
+      ${st.extra > 0 ? `<td class="extra-cell">+${st.extra}</td>` : '<td>—</td>'}
+    </tr>`;
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Cuadrante Guardias · ${monthName}</title>
+<style>
+  @page { size: A4 landscape; margin: 10mm 8mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 9px; color: #1A2A38; background: white; }
+
+  .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 6px; border-bottom: 2px solid #1B5FA8; padding-bottom: 4px; }
+  .page-title { font-size: 16px; font-weight: 700; color: #1B5FA8; }
+  .page-sub { font-size: 9px; color: #7A94A8; margin-top: 2px; }
+  .page-month { font-size: 13px; font-weight: 600; color: #1A2A38; }
+
+  /* Calendario */
+  .cal-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; table-layout: fixed; }
+  .cal-table th { background: #1B5FA8; color: white; text-align: center; padding: 4px 2px; font-size: 8px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; border: 1px solid #1B5FA8; }
+  .cal-table th.weekend-h { background: #5B3A8A; }
+  .cal-table td { border: 1px solid #C8D6E2; vertical-align: top; padding: 3px; height: 68px; width: 14.28%; }
+  .cal-table td.empty { background: #F5F7FA; }
+  .cal-table td.weekend { background: #FAF6FF; }
+  .cal-table td.out-range { background: #F5F7FA; opacity: .5; }
+
+  .day-num { font-size: 11px; font-weight: 700; color: #1A2A38; margin-bottom: 2px; }
+  .hours-lbl { font-size: 7px; color: #7A94A8; margin-bottom: 3px; font-family: monospace; }
+  .slot { font-size: 8px; font-weight: 600; padding: 2px 4px; border-radius: 2px; margin-bottom: 2px; display: flex; align-items: center; gap: 3px; line-height: 1.3; }
+  .ubrique-slot { background: #D6E6F6; color: #1B5FA8; border-left: 3px solid #1B5FA8; }
+  .grazalema-slot { background: #D4EDE3; color: #1A6B4A; border-left: 3px solid #1A6B4A; }
+  .loc-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .u-dot { background: #1B5FA8; }
+  .g-dot { background: #1A6B4A; }
+  .changed-mark { font-size: 7px; color: #8A5A00; margin-left: 2px; }
+
+  /* Leyenda */
+  .legend { display: flex; gap: 14px; margin-bottom: 5px; align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 8px; color: #4A6278; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+  /* Tabla resumen */
+  .section-title { font-size: 10px; font-weight: 700; color: #1B5FA8; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; margin-top: 6px; border-bottom: 1px solid #C8D6E2; padding-bottom: 2px; }
+  .summary-table { width: 100%; border-collapse: collapse; font-size: 8px; }
+  .summary-table th { background: #E8EEF4; padding: 3px 6px; text-align: left; font-size: 7.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: #4A6278; border: 1px solid #C8D6E2; }
+  .summary-table th.u-th { color: #1B5FA8; }
+  .summary-table th.g-th { color: #1A6B4A; }
+  .summary-table td { padding: 3px 6px; border: 1px solid #E8EEF4; }
+  .summary-table tr:nth-child(even) td { background: #F7FAFB; }
+  .extra-cell { color: #8A5A00; font-weight: 700; }
+
+  .footer { margin-top: 5px; font-size: 7px; color: #7A94A8; text-align: right; border-top: 1px solid #E8EEF4; padding-top: 3px; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+<div class="page-header">
+  <div>
+    <div class="page-title">Cuadrante de Guardias · Enfermería</div>
+    <div class="page-sub">Centro de Salud · Ubrique y Grazalema</div>
+  </div>
+  <div class="page-month">${monthName}</div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#1B5FA8"></div> Ubrique</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#1A6B4A"></div> Grazalema</div>
+  <div class="legend-item" style="margin-left:8px;color:#7A94A8">L–V: guardia 15:00 → 08:00 (17h) &nbsp;|&nbsp; Sáb–Dom: guardia 08:00 → 08:00 (24h)</div>
+</div>
+
+<table class="cal-table">
+  <thead><tr>
+    ${DAYS.map((d,i) => `<th class="${i>=5?'weekend-h':''}">${d}</th>`).join('')}
+  </tr></thead>
+  <tbody>${calRows}</tbody>
+</table>
+
+<div class="section-title">Resumen de guardias · ${monthName}</div>
+<table class="summary-table">
+  <thead><tr>
+    <th>Profesional</th>
+    <th>Guardias</th>
+    <th>Horas</th>
+    <th class="u-th">Ubrique</th>
+    <th class="g-th">Grazalema</th>
+    <th>Viernes</th>
+    <th>Sábados</th>
+    <th>Domingos</th>
+    <th>Extras</th>
+  </tr></thead>
+  <tbody>${summaryRows || '<tr><td colspan="9" style="text-align:center;color:#7A94A8;padding:6px">Sin guardias asignadas este mes</td></tr>'}</tbody>
+</table>
+
+<div class="footer">Generado el ${new Date().toLocaleDateString('es-ES', {day:'2-digit',month:'long',year:'numeric'})} · Cuadrante Guardias Enfermería</div>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => { win.focus(); win.print(); };
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────
+(function init() {
+  loadData();
+  if (Object.keys(schedule).length === 0) {
+    schedule = generateSchedule();
+    saveData();
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>
