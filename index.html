@@ -899,9 +899,10 @@ let highlightDue = null;
 // Reglas blandas (optimizadas con recocido simulado): igualdad de guardias anual y
 // mensual, lun/mar/mié equilibrados y sin repetir el mismo día en un mes, vie/sáb/dom
 // equilibrados, alternancia de puesto, fin de semana libre tras trabajar vie/sáb/dom.
+// Regla dura añadida: una sola guardia por fin de semana (vie/sáb/dom) y DUE.
 function generateSchedule() {
   const N = NUM_DUES;
-  const W = { tot:100, mes:25, loc:8, dow:30, dowJue:15, mesFin:6, rep:200, finSem:120, alt:10 };
+  const W = { tot:100, mes:100, loc:8, dow:30, dowJue:15, mesFin:6, rep:200, finSem:120, alt:100 };
 
   const dates = [], dow = [];
   { const d = new Date(START); while (d <= END) { dates.push(dateKey(d)); dow.push(d.getDay()); d.setDate(d.getDate()+1); } }
@@ -963,6 +964,10 @@ function generateSchedule() {
         if (o[x]) return false;
         if (x > 0 && o[x-1]) return false;
         if (x < D-1 && o[x+1]) return false;
+        // Un DUE solo puede hacer una guardia por fin de semana (vie/sáb/dom):
+        // el de viernes no trabaja sábado ni domingo (sáb-dom ya lo impide la regla de consecutivos)
+        if (dow[x] === 5 && x+2 < D && o[x+2]) return false;
+        if (dow[x] === 0 && x >= 2 && o[x-2]) return false;
         if (dow[x] === 6 && x >= 2 && t[x-2]) return false;
         if (dow[x] === 0 && x >= 3 && t[x-3]) return false;
         if (x === u.thu) for (let k = 2; k <= 3; k++) if (x+k < D && o[x+k]) return false;
@@ -1011,7 +1016,7 @@ function generateSchedule() {
 
     // ── Mejora por recocido simulado (reasignaciones e intercambios) ──
     const cc = []; for (let d = 0; d < N; d++) cc.push(cost(d));
-    const ITER = 260000, T0 = 40, T1 = 0.4, NU = units.length;
+    const ITER = 600000, T0 = 40, T1 = 0.4, NU = units.length;
     for (let it = 0; it < ITER; it++) {
       const T = T0 * Math.pow(T1 / T0, it / ITER);
       const A = units[(rnd() * NU) | 0], a = A.due;
@@ -1078,6 +1083,68 @@ function getSlot(dateStr, loc) {
   const base = schedule[dateStr];
   if (!base || !base[loc]) return null;
   return { due: base[loc], changed: false };
+}
+
+// ─── AVISOS DE REGLAS (solo informan, no modifican nada) ─────────
+function addDays(k, n) { const d = parseKey(k); d.setDate(d.getDate() + n); return dateKey(d); }
+
+function ruleWarnings(dateStr, loc) {
+  const msgs = [];
+  const dow = parseKey(dateStr).getDay();
+  const locName = loc === 'ubrique' ? 'Ubrique' : 'Grazalema';
+  const other = ['ubrique','grazalema'];
+
+  // 1) Pareja sábado → jueves siguiente (mismo puesto)
+  if (dow === 6 || dow === 4) {
+    const sat = dow === 6 ? dateStr : addDays(dateStr, -5);
+    const thu = dow === 4 ? dateStr : addDays(dateStr, 5);
+    const a = getSlot(sat, loc), b = getSlot(thu, loc);
+    if (a && b) {
+      if (a.due !== b.due) {
+        msgs.push(`Sábado ${sat} (${dueName(a.due)}) y jueves ${thu} (${dueName(b.due)}) en ${locName} ya no tienen el mismo DUE.`);
+      }
+      // Quien hace el jueves de la secuencia libra vie-sáb-dom de esa semana
+      for (let off = 1; off <= 3; off++) {
+        const x = addDays(thu, off);
+        for (const l of other) {
+          const s = getSlot(x, l);
+          if (s && s.due === b.due) {
+            msgs.push(`${dueName(b.due)} hace el jueves ${thu} y también trabaja el ${dowName(x)} ${x} (${l === 'ubrique' ? 'Ubrique' : 'Grazalema'}): debería librar ese fin de semana.`);
+          }
+        }
+      }
+    }
+  }
+
+  // 2) Un DUE que hizo jueves de secuencia no debería trabajar sábado/domingo siguientes
+  if (dow === 6 || dow === 0) {
+    const thu = addDays(dateStr, dow === 6 ? -2 : -3);
+    if (parseKey(addDays(thu, -5)) >= START) {
+      const me = getSlot(dateStr, loc);
+      for (const l of other) {
+        const t = getSlot(thu, l);
+        if (me && t && t.due === me.due) {
+          msgs.push(`${dueName(me.due)} hizo el jueves ${thu} de su secuencia sábado→jueves y debería librar este fin de semana.`);
+        }
+      }
+    }
+  }
+  // 3) Días consecutivos y más de una guardia en el mismo fin de semana (vie/sáb/dom)
+  const cur = getSlot(dateStr, loc);
+  if (cur && cur.due) {
+    const works = (k) => other.some(l => { const s = getSlot(k, l); return s && s.due === cur.due; });
+    for (const off of [-1, 1]) {
+      const k = addDays(dateStr, off);
+      if (works(k)) msgs.push(`${dueName(cur.due)} tiene guardias en días seguidos (${off < 0 ? k : dateStr} y ${off < 0 ? dateStr : k}).`);
+    }
+    const fri = dow === 5 ? dateStr : dow === 6 ? addDays(dateStr, -1) : dow === 0 ? addDays(dateStr, -2) : null;
+    if (fri) {
+      const wkend = [fri, addDays(fri, 1), addDays(fri, 2)].filter(k => k !== dateStr && parseKey(k) >= START && parseKey(k) <= END);
+      const also = wkend.filter(works);
+      if (also.length) msgs.push(`${dueName(cur.due)} trabaja más de un día del mismo fin de semana (${[dateStr, ...also].sort().join(', ')}).`);
+    }
+  }
+  return [...new Set(msgs)];
 }
 
 // ─── ESTADÍSTICAS ─────────────────────────────────────────────────
@@ -1246,6 +1313,7 @@ function renderDayDetail() {
         <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${slot.due}</div>
         <div class="slot-hours">${horas} h · ${horario}</div>
         ${slot.changed ? `<div class="slot-change-info">⚠ Cambio (${slot.reason}): ${dueName(slot.from)} → ${dueName(slot.due)}</div>` : ''}
+        ${ruleWarnings(selectedDay, loc).map(w => `<div class="slot-change-info" style="background:var(--danger-light);color:var(--danger);margin-top:6px">⚠ ${w}</div>`).join('')}
         <button class="btn-change" onclick="openChangeModal('${selectedDay}','${loc}')">✏ Registrar cambio</button>
       </div>`;
     }
@@ -1484,8 +1552,12 @@ function saveChange() {
 
   saveData();
   closeModal();
+  selectedDay = dateStr;
   renderAll();
-  showToast(`Cambio registrado: ${currentDue} → ${newDue}`);
+  const warns = ruleWarnings(dateStr, loc);
+  showToast(warns.length
+    ? `Cambio registrado, pero ⚠ ${warns[0]}${warns.length > 1 ? ` (+${warns.length - 1} aviso más)` : ''}`
+    : `Cambio registrado: ${currentDue} → ${newDue}`, warns.length ? 9000 : 2800);
 }
 
 function deleteChange(id) {
@@ -1498,15 +1570,15 @@ function deleteChange(id) {
 
 // ─── PERSISTENCIA ─────────────────────────────────────────────────
 function saveData() {
-  localStorage.setItem('guardias_schedule_v3', JSON.stringify(schedule));
-  localStorage.setItem('guardias_changes_v3', JSON.stringify(changes));
+  localStorage.setItem('guardias_schedule_v4', JSON.stringify(schedule));
+  localStorage.setItem('guardias_changes_v4', JSON.stringify(changes));
   localStorage.setItem('guardias_profiles_v2', JSON.stringify(profiles));
 }
 
 function loadData() {
   try {
-    const s = localStorage.getItem('guardias_schedule_v3');
-    const c = localStorage.getItem('guardias_changes_v3');
+    const s = localStorage.getItem('guardias_schedule_v4');
+    const c = localStorage.getItem('guardias_changes_v4');
     const p = localStorage.getItem('guardias_profiles_v2');
     if (s) schedule = JSON.parse(s);
     if (c) changes  = JSON.parse(c);
@@ -1517,8 +1589,8 @@ function loadData() {
 
 function resetAll() {
   if (!confirm('¿Reiniciar cuadrante? Se perderán todos los cambios registrados. Los nombres de los profesionales se conservan.')) return;
-  localStorage.removeItem('guardias_schedule_v3');
-  localStorage.removeItem('guardias_changes_v3');
+  localStorage.removeItem('guardias_schedule_v4');
+  localStorage.removeItem('guardias_changes_v4');
   changes = [];
   schedule = generateSchedule();
   saveData();
@@ -1827,12 +1899,12 @@ function printMonth() {
 
 // ─── TOAST ────────────────────────────────────────────────────────
 let toastTimer = null;
-function showToast(msg) {
+function showToast(msg, ms = 2800) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────
