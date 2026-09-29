@@ -1587,15 +1587,35 @@ function loadData() {
   } catch(e) {}
 }
 
+// Diálogo de confirmación propio (confirm() nativo se bloquea en algunos navegadores/visores incrustados)
+function askConfirm(msg, onYes) {
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML = `<div style="background:#fff;border-radius:12px;max-width:420px;width:100%;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.3);font-family:inherit">
+    <p style="margin:0 0 16px;line-height:1.5;color:#222">${msg}</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button data-a="no" style="padding:8px 16px;border-radius:8px;border:1px solid #ccc;background:#f5f5f5;cursor:pointer">Cancelar</button>
+      <button data-a="yes" style="padding:8px 16px;border-radius:8px;border:0;background:#b02020;color:#fff;cursor:pointer">Confirmar</button>
+    </div></div>`;
+  ov.addEventListener('click', e => {
+    const a = e.target.dataset && e.target.dataset.a;
+    if (e.target === ov || a === 'no') ov.remove();
+    else if (a === 'yes') { ov.remove(); onYes(); }
+  });
+  document.body.appendChild(ov);
+}
+
 function resetAll() {
-  if (!confirm('¿Reiniciar cuadrante? Se perderán todos los cambios registrados. Los nombres de los profesionales se conservan.')) return;
-  localStorage.removeItem('guardias_schedule_v4');
-  localStorage.removeItem('guardias_changes_v4');
-  changes = [];
-  schedule = generateSchedule();
-  saveData();
-  renderAll();
-  showToast('Cuadrante reiniciado');
+  askConfirm('¿Reiniciar cuadrante? Se perderán todos los cambios registrados. Los nombres de los profesionales se conservan.', () => {
+    const n = changes.length;
+    localStorage.removeItem('guardias_schedule_v4');
+    localStorage.removeItem('guardias_changes_v4');
+    changes = [];
+    schedule = generateSchedule();
+    saveData();
+    renderAll();
+    showToast(n ? `Cuadrante reiniciado: ${n} cambio${n > 1 ? 's' : ''} eliminado${n > 1 ? 's' : ''}` : 'Cuadrante reiniciado (no había cambios registrados)', 4000);
+  });
 }
 
 // ─── EXPORT CSV ───────────────────────────────────────────────────
@@ -1710,12 +1730,13 @@ function saveAllProfiles() {
 }
 
 function clearAllNames() {
-  if (!confirm('¿Eliminar todos los nombres? Los DUEs volverán a mostrarse como DUE 1, DUE 2…')) return;
-  profiles = {};
-  saveData();
-  renderProfiles();
-  renderAll();
-  showToast('Nombres eliminados');
+  askConfirm('¿Eliminar todos los nombres? Los DUEs volverán a mostrarse como DUE 1, DUE 2…', () => {
+    profiles = {};
+    saveData();
+    renderProfiles();
+    renderAll();
+    showToast('Nombres eliminados');
+  });
 }
 
 // ─── IMPRESIÓN A4 ─────────────────────────────────────────────────
