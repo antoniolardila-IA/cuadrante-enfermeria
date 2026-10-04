@@ -298,6 +298,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); font
     <span class="role-badge" id="roleBadge"></span>
     <button class="btn-header" onclick="exportCSV()" id="btnExport">⬇ CSV</button>
     <button class="btn-header" onclick="resetAll()" id="btnReset" style="background:rgba(176,32,32,.25);border-color:rgba(255,100,100,.3)">↺ Reiniciar</button>
+    <button class="btn-header" onclick="openCambiarClave()" id="btnCambiarClave">🔑 Mi clave</button>
     <button class="btn-header" onclick="doLogout()">↩ Salir</button>
   </div>
 </header>
@@ -1669,6 +1670,80 @@ function showToast(msg){
     }
   }
 })();
+
+// ═══════════════════════════════════════════════════════════════════
+// CAMBIAR CONTRASEÑA
+// ═══════════════════════════════════════════════════════════════════
+function openCambiarClave() {
+  document.getElementById('claveActual').value = '';
+  document.getElementById('claveNueva').value = '';
+  document.getElementById('claveRepite').value = '';
+  document.getElementById('claveError').style.display = 'none';
+  document.getElementById('claveModal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('claveActual').focus(), 50);
+}
+function closeCambiarClave() {
+  document.getElementById('claveModal').classList.add('hidden');
+}
+async function guardarClave() {
+  const actual  = document.getElementById('claveActual').value.trim();
+  const nueva   = document.getElementById('claveNueva').value.trim();
+  const repite  = document.getElementById('claveRepite').value.trim();
+  const errEl   = document.getElementById('claveError');
+  function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
+  errEl.style.display = 'none';
+  if (!actual)          return showErr('Introduce tu contraseña actual.');
+  if (nueva.length < 6) return showErr('La nueva contraseña debe tener al menos 6 caracteres.');
+  if (nueva !== repite) return showErr('Las contraseñas no coinciden.');
+  setLoading(true);
+  try {
+    const result = await apiFetch('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword: actual, newPassword: nueva }),
+    });
+    // El token incluye la contraseña (btoa(userId:pwd)), así que hay que actualizarlo
+    if (result && result.token) {
+      currentUser.token = result.token;
+      sessionStorage.setItem('cuadrante_session', JSON.stringify(currentUser));
+    }
+    closeCambiarClave();
+    showToast('Contraseña actualizada correctamente');
+  } catch(e) {
+    showErr(e.message || 'Error al cambiar la contraseña. Comprueba la contraseña actual.');
+  } finally {
+    setLoading(false);
+  }
+}
 </script>
+
+<!-- ── MODAL CAMBIAR CONTRASEÑA ───────────────────────────────────── -->
+<div class="modal-overlay hidden" id="claveModal" onclick="if(event.target===this)closeCambiarClave()">
+  <div class="modal-card" style="max-width:360px">
+    <div class="modal-header" style="background:var(--accent)">
+      🔑 Cambiar contraseña
+      <button class="modal-close" onclick="closeCambiarClave()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="login-error" id="claveError" style="display:none;margin-bottom:12px"></div>
+      <div class="form-group">
+        <label class="form-label">Contraseña actual</label>
+        <input class="form-input" type="password" id="claveActual" placeholder="Tu contraseña actual" onkeydown="if(event.key==='Enter')document.getElementById('claveNueva').focus()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nueva contraseña <span style="color:var(--text3);font-size:11px">(mín. 6 caracteres)</span></label>
+        <input class="form-input" type="password" id="claveNueva" placeholder="Nueva contraseña" onkeydown="if(event.key==='Enter')document.getElementById('claveRepite').focus()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Repetir nueva contraseña</label>
+        <input class="form-input" type="password" id="claveRepite" placeholder="Repite la contraseña" onkeydown="if(event.key==='Enter')guardarClave()">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-secondary" style="flex:1" onclick="closeCambiarClave()">Cancelar</button>
+        <button class="btn btn-primary" style="flex:2" onclick="guardarClave()">Guardar contraseña</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
