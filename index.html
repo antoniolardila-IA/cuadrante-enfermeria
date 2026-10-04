@@ -812,6 +812,7 @@ function getSlot(dateStr, loc) {
   const change=changes.find(c=>c.date===dateStr&&c.loc===loc);
   if(change) return{due:change.to,changed:true,from:change.from,reason:change.reason};
   const base=schedule[dateStr];if(!base)return null;
+  if(!base[loc])return null;
   return{due:base[loc],changed:false};
 }
 function getReinforcementSlot(dateStr) {
