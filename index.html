@@ -487,7 +487,13 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); font
       <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="excDate" type="date" /></div>
       <div class="form-group">
         <label class="form-label">Profesional (DUE)</label>
-        <select class="form-select" id="excDue"></select>
+        <select class="form-select" id="excDue" onchange="toggleExcExtFields(this.value)"></select>
+        <div class="form-group" id="excExtGroup" style="display:none;margin-top:8px;background:var(--warn-light);padding:10px;border-radius:var(--radius);border-left:3px solid var(--warn)">
+          <label class="form-label">Nombre del DUE externo <span style="color:var(--danger)">*</span></label>
+          <input class="form-input" type="text" id="excExtNombre" placeholder="Nombre y apellidos" style="margin-bottom:8px">
+          <label class="form-label">Teléfono <span style="color:var(--text3);font-size:11px">(opcional)</span></label>
+          <input class="form-input" type="tel" id="excExtTelefono" placeholder="666 123 456">
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Centro</label>
@@ -1129,8 +1135,9 @@ function renderDayDetail(){
       html+=`<div class="day-slot"><div class="slot-location excepcional">⚡ Extraordinarios</div>`;
       excList.forEach(exc=>{
         const h=computeExceptionalHours(exc);const locLabel=exc.location==='ubrique'?'Ubrique':'Grazalema';
+        const excNombreLabel=exc.due==='EXT'?(exc.extNombre||'Personal externo')+(exc.extTelefono?` · 📞 ${exc.extTelefono}`:''):dueName(exc.due);
         html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding:6px 8px;background:var(--excepcional-light);border-radius:4px;border-left:3px solid var(--excepcional)">
-          <div><div style="font-size:12px;font-weight:600;color:var(--excepcional)">${dueName(exc.due)}</div>
+          <div><div style="font-size:12px;font-weight:600;color:var(--excepcional)">${excNombreLabel}</div>
           <div style="font-size:10px;color:var(--text2)">${exc.start}–${exc.end} · ${locLabel} · ${h}h</div></div>
           <button onclick="deleteExceptional('${exc.id}')" class="btn-del-change">✕</button>
         </div>`;
@@ -1333,7 +1340,8 @@ function renderChanges(){
   if(exceptionals.length===0){eEl.innerHTML='';noEEl.style.display='block';}
   else{noEEl.style.display='none';eEl.innerHTML=[...exceptionals].sort((a,b)=>b.date.localeCompare(a.date)).map(exc=>{
     const h=computeExceptionalHours(exc);const locLabel=exc.location==='ubrique'?'Ubrique':'Grazalema';
-    return`<div class="change-item" style="border-left:3px solid var(--excepcional)"><div><div class="c-date">${exc.date} · ${locLabel} · ${dowName(exc.date)}</div><div class="c-info">${dueName(exc.due)} — ${exc.start}→${exc.end} (${h}h)</div>${exc.reason?`<span class="c-reason-badge badge-excepcional">${exc.reason}</span>`:''}</div><button class="btn-del-change" onclick="deleteExceptional('${exc.id}')">✕</button></div>`;
+    const excLabel=exc.due==='EXT'?(exc.extNombre||'Personal externo')+(exc.extTelefono?` (📞 ${exc.extTelefono})`:''):dueName(exc.due);
+    return`<div class="change-item" style="border-left:3px solid var(--excepcional)"><div><div class="c-date">${exc.date} · ${locLabel} · ${dowName(exc.date)}</div><div class="c-info">${excLabel} — ${exc.start}→${exc.end} (${h}h)</div>${exc.reason?`<span class="c-reason-badge badge-excepcional">${exc.reason}</span>`:''}</div><button class="btn-del-change" onclick="deleteExceptional('${exc.id}')">✕</button></div>`;
   }).join('');}
 }
 
@@ -1490,10 +1498,17 @@ function openExceptionalModal(dateStr){
   document.getElementById('excDate').value=dateStr||'';
   const sel=document.getElementById('excDue');sel.innerHTML='';
   for(let i=1;i<=NUM_DUES;i++){const lbl=dueLabel(i);const opt=document.createElement('option');opt.value=lbl;opt.textContent=dueName(lbl)!==lbl?`${dueName(lbl)} (${lbl})`:lbl;sel.appendChild(opt);}
+  const extOpt=document.createElement('option');extOpt.value='EXT';extOpt.textContent='👤 DUE Externo (personal de fuera)';sel.appendChild(extOpt);
+  document.getElementById('excExtGroup').style.display='none';
+  document.getElementById('excExtNombre').value='';
+  document.getElementById('excExtTelefono').value='';
   document.getElementById('excLocation').value='ubrique';
   document.getElementById('excStart').value='08:00';document.getElementById('excEnd').value='15:00';
   document.getElementById('excReason').value='';document.getElementById('excNotes').value='';
   document.getElementById('exceptionalModal').classList.remove('hidden');
+}
+function toggleExcExtFields(val){
+  document.getElementById('excExtGroup').style.display=val==='EXT'?'':'none';
 }
 function closeExceptionalModal(){document.getElementById('exceptionalModal').classList.add('hidden');}
 function saveExceptional(){
@@ -1502,8 +1517,16 @@ function saveExceptional(){
   const end=document.getElementById('excEnd').value;const reason=document.getElementById('excReason').value;
   const notes=document.getElementById('excNotes').value.trim();
   if(!date||!due||!start||!end){showToast('Completa fecha, DUE y horario');return;}
-  exceptionals.push({id:`exc-${Date.now()}`,date,due,location,start,end,reason,notes});
-  saveData();closeExceptionalModal();renderAll();showToast(`Extraordinario añadido: ${dueName(due)}`);
+  let extNombre='',extTelefono='';
+  if(due==='EXT'){
+    extNombre=document.getElementById('excExtNombre').value.trim();
+    if(!extNombre){showToast('Introduce el nombre del DUE externo');return;}
+    extTelefono=document.getElementById('excExtTelefono').value.trim();
+  }
+  const exc={id:`exc-${Date.now()}`,date,due,location,start,end,reason,notes};
+  if(due==='EXT'){exc.extNombre=extNombre;exc.extTelefono=extTelefono;}
+  exceptionals.push(exc);
+  saveData();closeExceptionalModal();renderAll();showToast(`Extraordinario añadido: ${due==='EXT'?extNombre:dueName(due)}`);
 }
 function deleteExceptional(id){
   if(!confirm('¿Eliminar este extraordinario?'))return;
