@@ -435,7 +435,13 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); font
       </div>
       <div class="form-group">
         <label class="form-label">Asignar a</label>
-        <select class="form-select" id="modalNewDue"></select>
+        <select class="form-select" id="modalNewDue" onchange="toggleExtFields(this.value)"></select>
+      </div>
+      <div class="form-group" id="extDueGroup" style="display:none;background:var(--warn-light);padding:10px;border-radius:var(--radius);border-left:3px solid var(--warn)">
+        <label class="form-label">Nombre del DUE externo <span style="color:var(--danger)">*</span></label>
+        <input class="form-input" type="text" id="extNombre" placeholder="Nombre y apellidos" style="margin-bottom:8px">
+        <label class="form-label">Teléfono <span style="color:var(--text3);font-size:11px">(opcional)</span></label>
+        <input class="form-input" type="tel" id="extTelefono" placeholder="666 123 456">
       </div>
     </div>
     <div class="modal-footer">
@@ -575,11 +581,13 @@ async function apiFetch(path, opts = {}) {
 function dueLabel(n) { return `DUE ${n}`; }
 function dueName(code) {
   if (!code) return code;
+  if (code === 'EXT') return 'Personal externo';
   const num = parseInt(code.replace('DUE ',''));
   if (profiles[num] && profiles[num].trim()) return profiles[num].trim();
   return code;
 }
 function dueShort(code) {
+  if (code === 'EXT') return 'Ext.';
   const n = dueName(code);
   if (n === code) return code.replace('DUE ','D');
   return n.split(' ')[0];
@@ -811,7 +819,7 @@ function generateReinforcement() {
 // ═══════════════════════════════════════════════════════════════════
 function getSlot(dateStr, loc) {
   const change=changes.find(c=>c.date===dateStr&&c.loc===loc);
-  if(change) return{due:change.to,changed:true,from:change.from,reason:change.reason};
+  if(change) return{due:change.to,changed:true,from:change.from,reason:change.reason,extNombre:change.extNombre||'',extTelefono:change.extTelefono||''};
   const base=schedule[dateStr];if(!base)return null;
   if(!base[loc])return null;
   return{due:base[loc],changed:false};
@@ -954,6 +962,7 @@ function populateLoginSelect(){
 function computeStats(mf){
   const stats={};
   for(let i=1;i<=NUM_DUES;i++) stats[dueLabel(i)]={total:0,horas:0,ubrique:0,grazalema:0,viernes:0,sabado:0,domingo:0,jueves:0,extra:0,quitadas:{baja:0,asunto:0,vacaciones:0,cambio:0}};
+  stats['EXT']={total:0,horas:0,ubrique:0,grazalema:0,viernes:0,sabado:0,domingo:0,jueves:0,extra:0,quitadas:{}};
   for(const dateStr of Object.keys(schedule).sort()){
     if(mf!=='all'){const d=parseKey(dateStr);const key=`${d.getFullYear()}-${d.getMonth()}`;if(key!==mf)continue;}
     const d=parseKey(dateStr);const dow=d.getDay();const h=horasGuardia(dateStr);
@@ -1084,8 +1093,8 @@ function renderDayDetail(){
       const evt=getGuardEvent(selectedDay,loc);
       html+=`<div class="day-slot">
         <div class="slot-location ${loc}">${locLabel}</div>
-        <div class="slot-due">${dueName(slot.due)}</div>
-        <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${slot.due}</div>
+        <div class="slot-due">${slot.due==='EXT'&&slot.extNombre?slot.extNombre:dueName(slot.due)}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${slot.due==='EXT'?'👤 DUE Externo'+(slot.extTelefono?' · 📞 '+slot.extTelefono:''):slot.due}</div>
         <div class="slot-hours">${horas}h · ${horario}</div>
         ${slot.changed?`<div class="slot-change-info">⚠ Cambio (${slot.reason}): ${dueName(slot.from)} → ${dueName(slot.due)}</div>`:''}
         ${evt?`<div class="slot-event-info ${evt.state.replace('_pendiente','').replace('_tardia','propuesta')}">${STATE_LABELS[evt.state]||evt.state}</div>`:''}`;
@@ -1278,6 +1287,21 @@ function renderStatsTable(){
       <td style="color:var(--excepcional)">${est.horas>0?est.horas+'h':'—'}</td>
     </tr>`;
   }
+  const extSt=stats['EXT']||{total:0,horas:0,ubrique:0,grazalema:0,viernes:0,sabado:0,domingo:0,jueves:0};
+  if(extSt.total>0){
+    totals.total+=extSt.total;totals.horas+=extSt.horas;totals.ubrique+=extSt.ubrique;totals.grazalema+=extSt.grazalema;
+    totals.viernes+=extSt.viernes;totals.sabado+=extSt.sabado;totals.domingo+=extSt.domingo;totals.jueves+=extSt.jueves;
+    rows+=`<tr style="background:#F5EFE0">
+      <td class="due-col" style="color:#7A5020;font-style:italic">👤 Personal externo</td>
+      <td>${extSt.total}</td><td>${extSt.horas}h</td>
+      <td style="color:var(--ubrique);font-weight:600">${extSt.ubrique||'—'}</td>
+      <td style="color:var(--grazalema);font-weight:600">${extSt.grazalema||'—'}</td>
+      <td>${extSt.viernes||'—'}</td><td>${extSt.sabado||'—'}</td><td>${extSt.domingo||'—'}</td><td>${extSt.jueves||'—'}</td>
+      <td>—</td><td style="font-size:10px;color:var(--text3)">—</td>
+      <td style="border-left:2px solid var(--refuerzo-light)">—</td><td>—</td>
+      <td style="border-left:2px solid var(--excepcional-light)">—</td><td>—</td>
+    </tr>`;
+  }
   document.getElementById('statsTableWrap').innerHTML=`<table>
     <thead><tr><th>DUE</th><th>Total</th><th>Horas</th><th style="color:var(--ubrique)">Ubrique</th><th style="color:var(--grazalema)">Grazalema</th><th>Vie</th><th>Sáb</th><th>Dom</th><th>Jue</th><th>Extra</th><th>Ausencias</th><th class="th-refuerzo" style="border-left:2px solid var(--refuerzo-light)">FdS</th><th class="th-refuerzo">H.Ref.</th><th class="th-excepcional" style="border-left:2px solid var(--excepcional-light)">Extraord.</th><th class="th-excepcional">H.Ext.</th></tr></thead>
     <tbody>${rows}</tbody>
@@ -1295,7 +1319,8 @@ function renderChanges(){
   else{noEl.style.display='none';el.innerHTML=[...mainChanges].sort((a,b)=>b.date.localeCompare(a.date)).map(c=>{
     const loc=c.loc==='ubrique'?'Ubrique':'Grazalema';
     const rLabel={baja:'Baja médica',asunto:'Asunto propio',vacaciones:'Vacaciones',cambio:'Cambio voluntario'}[c.reason]||c.reason;
-    return`<div class="change-item"><div><div class="c-date">${c.date} · ${loc} · ${dowName(c.date)}</div><div class="c-info">${dueName(c.from)} → ${dueName(c.to)}</div><span class="c-reason-badge badge-${c.reason}">${rLabel}</span></div><button class="btn-del-change" onclick="deleteChange('${c.id}')">✕</button></div>`;
+    const toLabel=c.to==='EXT'?(c.extNombre||'Personal externo')+(c.extTelefono?` (📞 ${c.extTelefono})`:''):dueName(c.to);
+    return`<div class="change-item"><div><div class="c-date">${c.date} · ${loc} · ${dowName(c.date)}</div><div class="c-info">${dueName(c.from)} → ${toLabel}</div><span class="c-reason-badge badge-${c.reason}">${rLabel}</span></div><button class="btn-del-change" onclick="deleteChange('${c.id}')">✕</button></div>`;
   }).join('');}
   const rEl=document.getElementById('reinforcementChangesList');const noREl=document.getElementById('noReinforcementChanges');
   if(reinforcementChanges.length===0){rEl.innerHTML='';noREl.style.display='block';}
@@ -1391,8 +1416,15 @@ function openChangeModal(dateStr,loc,type){
   document.getElementById('modalCurrentDue').style.color=type==='refuerzo'?'var(--refuerzo)':'var(--accent)';
   const sel=document.getElementById('modalNewDue');sel.innerHTML='';
   for(let i=1;i<=NUM_DUES;i++){const lbl=dueLabel(i);if(lbl===slot.due)continue;const opt=document.createElement('option');opt.value=lbl;opt.textContent=dueName(lbl)!==lbl?`${dueName(lbl)} (${lbl})`:lbl;sel.appendChild(opt);}
+  if(type!=='refuerzo'){const extOpt=document.createElement('option');extOpt.value='EXT';extOpt.textContent='👤 DUE Externo (personal de fuera)';sel.appendChild(extOpt);}
+  document.getElementById('extDueGroup').style.display='none';
+  document.getElementById('extNombre').value='';
+  document.getElementById('extTelefono').value='';
   ['baja','asunto','vacaciones','cambio'].forEach(r=>document.getElementById(`rb-${r}`).classList.remove('selected'));
   document.getElementById('changeModal').classList.remove('hidden');
+}
+function toggleExtFields(val){
+  document.getElementById('extDueGroup').style.display=val==='EXT'?'':'none';
 }
 function selectReason(r){
   selectedReason=r;
@@ -1403,15 +1435,23 @@ function saveChange(){
   if(!selectedReason){showToast('Selecciona el motivo del cambio');return;}
   const newDue=document.getElementById('modalNewDue').value;
   if(!newDue){showToast('Selecciona el DUE sustituto');return;}
+  let extNombre='',extTelefono='';
+  if(newDue==='EXT'){
+    extNombre=document.getElementById('extNombre').value.trim();
+    if(!extNombre){showToast('Introduce el nombre del DUE externo');return;}
+    extTelefono=document.getElementById('extTelefono').value.trim();
+  }
   const{dateStr,weekendKey,loc,currentDue,type}=modalCtx;
   if(type==='refuerzo'){
     reinforcementChanges=reinforcementChanges.filter(c=>c.weekendKey!==weekendKey);
     reinforcementChanges.push({id:`${weekendKey}-refuerzo-${Date.now()}`,weekendKey,from:currentDue,to:newDue,reason:selectedReason});
   } else {
     changes=changes.filter(c=>!(c.date===dateStr&&c.loc===loc));
-    changes.push({id:`${dateStr}-${loc}-${Date.now()}`,date:dateStr,loc,from:currentDue,to:newDue,reason:selectedReason});
+    const ch={id:`${dateStr}-${loc}-${Date.now()}`,date:dateStr,loc,from:currentDue,to:newDue,reason:selectedReason};
+    if(newDue==='EXT'){ch.extNombre=extNombre;ch.extTelefono=extTelefono;}
+    changes.push(ch);
   }
-  saveData();closeModal();renderAll();showToast(`Cambio: ${currentDue} → ${newDue}`);
+  saveData();closeModal();renderAll();showToast(`Cambio: ${currentDue} → ${newDue==='EXT'?extNombre||'Externo':newDue}`);
 }
 function deleteChange(id){changes=changes.filter(c=>c.id!==id);saveData();renderAll();renderChanges();showToast('Cambio eliminado');}
 function deleteReinforcementChange(id){reinforcementChanges=reinforcementChanges.filter(c=>c.id!==id);saveData();renderAll();renderChanges();showToast('Cambio eliminado');}
@@ -1623,7 +1663,7 @@ function printMonth(){
         const dt=new Date(ds+'T00:00:00');const dow=dt.getDay();const isWknd=dow===0||dow===6;const inRange=dt>=START&&dt<=END;
         const horas=horasGuardia(ds);const horario=(dow===0||dow===6)?'08:00→08:00':'15:00→08:00';
         let slotU='—',slotG='—',slotR='',changeU='',changeG='';
-        if(inRange){const su=getSlot(ds,'ubrique');const sg=getSlot(ds,'grazalema');if(su){slotU=dueName(su.due);if(su.changed)changeU=`<span class="changed-mark">⚠</span>`;}if(sg){slotG=dueName(sg.due);if(sg.changed)changeG=`<span class="changed-mark">⚠</span>`;}if(dow===5||dow===6||dow===0){const rs=getReinforcementSlot(ds);if(rs)slotR=dueName(rs.due);}const excList=getExceptionalsForDate(ds);if(excList.length>0)slotR+=(slotR?'<br>':'')+'<span class="exc-mark">⚡'+excList.map(e=>dueShort(e.due)).join(',')+'</span>';}
+        if(inRange){const su=getSlot(ds,'ubrique');const sg=getSlot(ds,'grazalema');if(su){slotU=(su.due==='EXT'&&su.extNombre)?su.extNombre:dueName(su.due);if(su.changed)changeU=`<span class="changed-mark">⚠</span>`;}if(sg){slotG=(sg.due==='EXT'&&sg.extNombre)?sg.extNombre:dueName(sg.due);if(sg.changed)changeG=`<span class="changed-mark">⚠</span>`;}if(dow===5||dow===6||dow===0){const rs=getReinforcementSlot(ds);if(rs)slotR=dueName(rs.due);}const excList=getExceptionalsForDate(ds);if(excList.length>0)slotR+=(slotR?'<br>':'')+'<span class="exc-mark">⚡'+excList.map(e=>dueShort(e.due)).join(',')+'</span>';}
         calRows+=`<td class="${isWknd?'weekend':''}${!inRange?' out-range':''}"><div class="day-num">${dayCount}</div><div class="hours-lbl">${horas}h · ${horario}</div><div class="slot ubrique-slot"><span class="loc-dot u-dot"></span>${slotU}${changeU}</div><div class="slot grazalema-slot"><span class="loc-dot g-dot"></span>${slotG}${changeG}</div>${(dow===5||dow===6||dow===0)&&slotR?`<div class="slot refuerzo-slot"><span class="loc-dot r-dot"></span>${slotR}</div>`:''}</td>`;
         dayCount++;}
     }calRows+='</tr>';}
